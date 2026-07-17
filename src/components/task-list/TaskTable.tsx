@@ -6,6 +6,7 @@ import { useCallback } from "react";
 
 import { EMPTY_FILTERS, useTaskStore } from "@/lib/store/useTaskStore";
 import { applyFilters } from "@/lib/utils/applyFilters";
+import { writePersistedFilters } from "@/lib/utils/persistedFilters";
 import { sortTasks } from "@/lib/utils/sortTasks";
 import { getUrgencyReason } from "@/lib/utils/urgency";
 import {
@@ -162,6 +163,10 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
   const handleClearFilters = useCallback(() => {
     clearFiltersInStore();
     setSearchQueryInStore("");
+    // Bypasses useFilters().setFilters (see the race-condition note above),
+    // so it must also clear the persisted copy directly (Task 5.4) —
+    // otherwise a later reload would resurrect the filters just cleared.
+    writePersistedFilters(EMPTY_FILTERS);
     const params = applySearchToParams(
       applyFiltersToParams(new URLSearchParams(searchParams), EMPTY_FILTERS),
       "",
