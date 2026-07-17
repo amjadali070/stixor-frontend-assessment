@@ -8,6 +8,7 @@ import { sortTasks } from "@/lib/utils/sortTasks";
 import { getUrgencyReason } from "@/lib/utils/urgency";
 import type { Task } from "@/types/task";
 
+import { HighlightedText } from "./HighlightedText";
 import { WarningTriangleIcon } from "./icons";
 import { NoMatchesEmptyState } from "./NoMatchesEmptyState";
 import { NoTasksEmptyState } from "./NoTasksEmptyState";
@@ -37,9 +38,10 @@ interface TaskRowProps {
   task: Task;
   onOpen: (id: string) => void;
   now: Date;
+  searchQuery: string;
 }
 
-function TaskRow({ task, onOpen, now }: TaskRowProps) {
+function TaskRow({ task, onOpen, now, searchQuery }: TaskRowProps) {
   const open = () => onOpen(task.id);
   const urgencyReason = getUrgencyReason(task, now);
 
@@ -75,13 +77,13 @@ function TaskRow({ task, onOpen, now }: TaskRowProps) {
             </span>
           )}
           <span className="min-w-0 truncate" title={task.title}>
-            {task.title}
+            <HighlightedText text={task.title} query={searchQuery} />
           </span>
         </span>
       </td>
       <td className="px-4 py-3">
         <span className="block truncate" title={task.customer.name}>
-          {task.customer.name}
+          <HighlightedText text={task.customer.name} query={searchQuery} />
         </span>
         {task.customer.company && (
           <span
@@ -186,7 +188,13 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
         </thead>
         <tbody>
           {sortedTasks.map((task) => (
-            <TaskRow key={task.id} task={task} onOpen={handleOpen} now={now} />
+            <TaskRow
+              key={task.id}
+              task={task}
+              onOpen={handleOpen}
+              now={now}
+              searchQuery={searchQuery}
+            />
           ))}
         </tbody>
       </table>
