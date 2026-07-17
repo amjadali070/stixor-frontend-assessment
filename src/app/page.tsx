@@ -1,5 +1,8 @@
 "use client";
 
+import { Suspense } from "react";
+
+import { SearchBar } from "@/components/filters/SearchBar";
 import { ErrorBanner } from "@/components/task-list/ErrorBanner";
 import { TaskTable } from "@/components/task-list/TaskTable";
 import { TaskTableSkeleton } from "@/components/task-list/TaskTableSkeleton";
@@ -21,6 +24,19 @@ export default function DashboardPage() {
           {isLoading ? "Loading…" : `${tasks.length} tasks`}
         </p>
       </header>
+
+      <div className="mb-4 max-w-sm">
+        {/* useSearchParams (inside useSearch) needs a Suspense boundary so
+            this static page can still prerender; fallback matches the real
+            input's height (border + py-2 + text-sm) to avoid layout jump. */}
+        <Suspense
+          fallback={
+            <div className="bg-muted h-[38px] w-full animate-pulse rounded-md" />
+          }
+        >
+          <SearchBar />
+        </Suspense>
+      </div>
 
       {error && (
         <ErrorBanner
