@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { EMPTY_FILTERS, useTaskStore } from "@/lib/store/useTaskStore";
 import { applyFilters } from "@/lib/utils/applyFilters";
@@ -39,14 +39,35 @@ interface TaskRowProps {
   onOpen: (id: string) => void;
   now: Date;
   searchQuery: string;
+  isRecentlyCreated: boolean;
+  onHighlightExpire: () => void;
 }
 
-function TaskRow({ task, onOpen, now, searchQuery }: TaskRowProps) {
+function TaskRow({
+  task,
+  onOpen,
+  now,
+  searchQuery,
+  isRecentlyCreated,
+  onHighlightExpire,
+}: TaskRowProps) {
   const open = () => onOpen(task.id);
   const urgencyReason = getUrgencyReason(task, now);
+  const rowRef = useRef<HTMLTableRowElement>(null);
+
+  // Task 7.6: scroll the newly created row into view and briefly highlight
+  // it. The highlight clears itself (fading via the row's existing
+  // transition-colors) rather than needing a separate fade-out animation.
+  useEffect(() => {
+    if (!isRecentlyCreated) return;
+    rowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const timeout = setTimeout(onHighlightExpire, 2500);
+    return () => clearTimeout(timeout);
+  }, [isRecentlyCreated, onHighlightExpire]);
 
   return (
     <tr
+      ref={rowRef}
       tabIndex={0}
       onClick={open}
       onKeyDown={(event) => {
@@ -56,7 +77,9 @@ function TaskRow({ task, onOpen, now, searchQuery }: TaskRowProps) {
           open();
         }
       }}
-      className="border-border hover:bg-muted focus-visible:bg-muted focus-visible:ring-ring group cursor-pointer border-b transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-inset"
+      className={`border-border hover:bg-muted focus-visible:bg-muted focus-visible:ring-ring group cursor-pointer border-b transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-inset ${
+        isRecentlyCreated ? "bg-primary/10" : ""
+      }`}
     >
       <td
         className={`border-l-4 px-4 py-3 font-medium ${
@@ -125,6 +148,10 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
   const searchQuery = useTaskStore((s) => s.searchQuery);
   const filters = useTaskStore((s) => s.filters);
   const setSelectedTaskId = useTaskStore((s) => s.setSelectedTaskId);
+  const recentlyCreatedTaskId = useTaskStore((s) => s.recentlyCreatedTaskId);
+  const setRecentlyCreatedTaskId = useTaskStore(
+    (s) => s.setRecentlyCreatedTaskId,
+  );
   const clearFiltersInStore = useTaskStore((s) => s.clearFilters);
   const setSearchQueryInStore = useTaskStore((s) => s.setSearchQuery);
 
@@ -140,6 +167,11 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
   const handleOpen = useCallback(
     (id: string) => setSelectedTaskId(id),
     [setSelectedTaskId],
+  );
+
+  const handleHighlightExpire = useCallback(
+    () => setRecentlyCreatedTaskId(null),
+    [setRecentlyCreatedTaskId],
   );
 
   const activeFilterCount =
@@ -218,6 +250,8 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
               onOpen={handleOpen}
               now={now}
               searchQuery={searchQuery}
+              isRecentlyCreated={task.id === recentlyCreatedTaskId}
+              onHighlightExpire={handleHighlightExpire}
             />
           ))}
         </tbody>

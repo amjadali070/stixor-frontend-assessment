@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 
 import { ActiveFilterChips } from "@/components/filters/ActiveFilterChips";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { SearchBar } from "@/components/filters/SearchBar";
 import { TaskDetailPanel } from "@/components/task-detail/TaskDetailPanel";
+import { CreateTaskModal } from "@/components/task-form/CreateTaskModal";
 import { ErrorBanner } from "@/components/task-list/ErrorBanner";
 import { TaskTable } from "@/components/task-list/TaskTable";
 import { TaskTableSkeleton } from "@/components/task-list/TaskTableSkeleton";
@@ -20,18 +21,27 @@ export default function DashboardPage() {
   // stay showing its task even if a filter change would hide that row.
   const selectedTask = tasks.find((t) => t.id === selectedTaskId) ?? null;
 
-  // TODO(Task 7.1): open CreateTaskModal. No-op until that exists.
-  const handleCreateTask = () => {};
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const handleCreateTask = () => setIsCreateModalOpen(true);
 
   const hasStaleData = error !== null && tasks.length > 0;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold">Tasks</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          {isLoading ? "Loading…" : `${tasks.length} tasks`}
-        </p>
+      <header className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Tasks</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {isLoading ? "Loading…" : `${tasks.length} tasks`}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleCreateTask}
+          className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring shrink-0 cursor-pointer rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+        >
+          + Create Task
+        </button>
       </header>
 
       {/* useSearchParams (inside useSearch/useFilters) needs a Suspense
@@ -86,6 +96,10 @@ export default function DashboardPage() {
           task={selectedTask}
           onClose={() => setSelectedTaskId(null)}
         />
+      )}
+
+      {isCreateModalOpen && (
+        <CreateTaskModal onClose={() => setIsCreateModalOpen(false)} />
       )}
     </main>
   );

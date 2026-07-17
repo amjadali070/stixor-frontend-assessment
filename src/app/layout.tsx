@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Fira_Code, Fira_Sans } from "next/font/google";
 import "./globals.css";
 
+import { ToastContainer } from "@/components/ui/Toast";
+
 const firaSans = Fira_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
@@ -30,6 +32,7 @@ export default function RootLayout({
     >
       <body className="bg-background text-foreground flex min-h-full flex-col">
         {children}
+        <ToastContainer />
       </body>
     </html>
   );

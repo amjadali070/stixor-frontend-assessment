@@ -22,6 +22,9 @@ interface TaskStoreState {
   searchQuery: string;
   filters: TaskFilters;
   selectedTaskId: string | null;
+  /** Briefly set after a successful create so TaskTable can highlight and
+   * scroll the new row into view (Task 7.6); cleared after a short delay. */
+  recentlyCreatedTaskId: string | null;
 
   setTasks: (tasks: Task[]) => void;
   setLoading: (isLoading: boolean) => void;
@@ -30,6 +33,7 @@ interface TaskStoreState {
   setFilters: (filters: TaskFilters) => void;
   clearFilters: () => void;
   setSelectedTaskId: (id: string | null) => void;
+  setRecentlyCreatedTaskId: (id: string | null) => void;
 
   /** Optimistic-update primitives. Fetch logic lives in hooks, not here. */
   addTask: (task: Task) => void;
@@ -54,6 +58,7 @@ export const useTaskStore = create<TaskStoreState>((set, get) => ({
   searchQuery: "",
   filters: EMPTY_FILTERS,
   selectedTaskId: null,
+  recentlyCreatedTaskId: null,
 
   setTasks: (tasks) => set({ tasks }),
   setLoading: (isLoading) => set({ isLoading }),
@@ -62,6 +67,8 @@ export const useTaskStore = create<TaskStoreState>((set, get) => ({
   setFilters: (filters) => set({ filters }),
   clearFilters: () => set({ filters: EMPTY_FILTERS }),
   setSelectedTaskId: (selectedTaskId) => set({ selectedTaskId }),
+  setRecentlyCreatedTaskId: (recentlyCreatedTaskId) =>
+    set({ recentlyCreatedTaskId }),
 
   addTask: (task) => set((state) => ({ tasks: [...state.tasks, task] })),
 

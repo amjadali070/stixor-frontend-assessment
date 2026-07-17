@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
 import { XIcon } from "@/components/ui/icons";
+import { useDialogBehavior } from "@/hooks/useDialogBehavior";
 import { PriorityBadge } from "@/components/task-list/PriorityBadge";
 import { StatusBadge } from "@/components/task-list/StatusBadge";
 import { formatDueDate } from "@/lib/utils/formatDueDate";
@@ -29,9 +30,6 @@ function Field({ label, children }: FieldProps) {
   );
 }
 
-const FOCUSABLE_SELECTOR =
-  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-
 /**
  * Full task view: a side drawer on desktop (>=1024px, Tailwind's `lg`
  * breakpoint), a full-screen overlay on mobile — one responsive layout,
@@ -39,54 +37,15 @@ const FOCUSABLE_SELECTOR =
  *
  * Closes via "X" button, Escape, and backdrop click (Task 6.3). Focus
  * moves into the panel on open and restores to the triggering element on
- * close, with Tab trapped inside the panel while open (Task 6.4). `key={
- * task.id}` in page.tsx ensures a fresh mount per task, so this component
- * never has to worry about "the task changed without a real close."
+ * close, with Tab trapped inside the panel while open (Task 6.4) — all
+ * via the shared `useDialogBehavior` hook. `key={task.id}` in page.tsx
+ * ensures a fresh mount per task, so this component never has to worry
+ * about "the task changed without a real close."
  */
 export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const triggerElementRef = useRef<HTMLElement | null>(null);
-
-  // Global, not scoped to the panel: Escape must work regardless of where
-  // focus currently is (a robust safety net even with Tab trapped below).
-  useEffect(() => {
-    function handleKeyDown(event: globalThis.KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
-  // Capture what was focused before opening (to restore on close) and
-  // move focus into the panel. Runs once per mount/unmount.
-  useEffect(() => {
-    triggerElementRef.current = document.activeElement as HTMLElement | null;
-    closeButtonRef.current?.focus();
-
-    return () => {
-      triggerElementRef.current?.focus();
-    };
-  }, []);
-
-  function trapTab(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key !== "Tab" || !panelRef.current) return;
-
-    const focusable =
-      panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-    if (focusable.length === 0) return;
-
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  }
+  const { trapTab } = useDialogBehavior(panelRef, onClose, closeButtonRef);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">

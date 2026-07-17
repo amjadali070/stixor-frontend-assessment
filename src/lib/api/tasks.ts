@@ -1,5 +1,5 @@
-import { seedTasks } from "@/lib/mock/seed";
-import type { CreateTaskInput, Task } from "@/types/task";
+import { ASSIGNEES, CUSTOMERS, seedTasks } from "@/lib/mock/seed";
+import type { Assignee, CreateTaskInput, Customer, Task } from "@/types/task";
 
 /**
  * Mock API layer simulating a real backend boundary: async, delayed
@@ -104,6 +104,23 @@ export async function getTaskById(id: string): Promise<Task | null> {
   await simulateNetwork();
   const task = getDb().find((t) => t.id === id);
   return task ? { ...task } : null;
+}
+
+/**
+ * The canonical assignee/customer roster, independent of which tasks
+ * currently exist — unlike `getAssigneeOptions`/`getCustomerOptions`
+ * (derived from loaded tasks, for filtering), Create Task needs the full
+ * roster even when zero tasks exist yet (e.g. opened from the "Create
+ * your first task" empty state, where a task-derived list would be empty).
+ */
+export async function getAssignees(): Promise<Assignee[]> {
+  await simulateNetwork();
+  return [...ASSIGNEES];
+}
+
+export async function getCustomers(): Promise<Customer[]> {
+  await simulateNetwork();
+  return [...CUSTOMERS];
 }
 
 export async function createTask(input: CreateTaskInput): Promise<Task> {
