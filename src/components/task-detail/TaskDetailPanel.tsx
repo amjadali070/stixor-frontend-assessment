@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import { XIcon } from "@/components/ui/icons";
 import { PriorityBadge } from "@/components/task-list/PriorityBadge";
@@ -34,16 +34,29 @@ function Field({ label, children }: FieldProps) {
  * breakpoint), a full-screen overlay on mobile — one responsive layout,
  * not two separate DOM structures, driven entirely by `lg:` variants.
  *
- * Scope note: only the visual structure and a minimal close ("X" button)
- * live here. Escape-key and backdrop-click closing are Task 6.3's job;
- * focus trapping and open/close focus restoration are Task 6.4's — see
- * DECISIONS.md for why a bare close button isn't "building 6.3 early."
+ * Scope note: closes via "X" button, Escape, and backdrop click (Task
+ * 6.3) — all three call the same `onClose`. Focus trapping and open/close
+ * focus restoration are still Task 6.4's job, not built here.
  */
 export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
+  // Global listener, not a local onKeyDown on the panel: focus isn't
+  // moved into the panel yet (Task 6.4), so Escape must work regardless
+  // of what currently has focus.
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop is purely visual here — click-to-close is Task 6.3's job. */}
-      <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
+      <div
+        className="absolute inset-0 bg-black/40"
+        aria-hidden="true"
+        onClick={onClose}
+      />
 
       <div
         role="dialog"
