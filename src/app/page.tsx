@@ -1,6 +1,7 @@
 "use client";
 
 import { TaskTable } from "@/components/task-list/TaskTable";
+import { TaskTableSkeleton } from "@/components/task-list/TaskTableSkeleton";
 import { useTasks } from "@/hooks/useTasks";
 
 export default function DashboardPage() {
@@ -15,10 +16,10 @@ export default function DashboardPage() {
         </p>
       </header>
 
-      {/* Interim states; dedicated skeleton, empty, and error components land
-          with the rest of the list-view work. */}
+      {/* Dedicated empty and error components land with later list-view
+          tasks; this interim error text is a plain fallback until then. */}
       {isLoading ? (
-        <p className="text-muted-foreground text-sm">Loading tasks…</p>
+        <TaskTableSkeleton />
       ) : error ? (
         <p className="text-destructive text-sm">{error}</p>
       ) : (

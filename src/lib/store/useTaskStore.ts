@@ -45,7 +45,11 @@ interface TaskStoreState {
 
 export const useTaskStore = create<TaskStoreState>((set, get) => ({
   tasks: [],
-  isLoading: false,
+  // True until the first fetch resolves — the initial render (before
+  // useTasks' mount effect fires) is genuinely a loading state, not an
+  // "empty" one. Defaulting this to false let the dashboard flash an
+  // empty table before the loading skeleton ever appeared.
+  isLoading: true,
   error: null,
   searchQuery: "",
   filters: EMPTY_FILTERS,
