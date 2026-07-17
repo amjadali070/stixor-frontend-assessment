@@ -153,3 +153,117 @@ export function WarningTriangleIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+/** Empty clipboard/checklist — "no tasks exist at all". Larger (hero-sized,
+ * not inline) since it anchors a full empty-state block rather than sitting
+ * beside text in a table cell. */
+export function EmptyTasksIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 48 48"
+      width="40"
+      height="40"
+      aria-hidden="true"
+      className={className}
+    >
+      <rect
+        x="10"
+        y="6"
+        width="28"
+        height="36"
+        rx="3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <rect
+        x="17"
+        y="3"
+        width="14"
+        height="7"
+        rx="2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <line
+        x1="16"
+        y1="21"
+        x2="32"
+        y2="21"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <line
+        x1="16"
+        y1="28"
+        x2="32"
+        y2="28"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <line
+        x1="16"
+        y1="35"
+        x2="25"
+        y2="35"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Magnifying glass with an X — "search/filters matched nothing". A
+ * deliberately different silhouette from EmptyTasksIcon so the two empty
+ * states are distinguishable even without reading the text. */
+export function NoMatchesIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 48 48"
+      width="40"
+      height="40"
+      aria-hidden="true"
+      className={className}
+    >
+      <circle
+        cx="21"
+        cy="21"
+        r="12"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <line
+        x1="30"
+        y1="30"
+        x2="42"
+        y2="42"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <line
+        x1="17"
+        y1="17"
+        x2="25"
+        y2="25"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <line
+        x1="25"
+        y1="17"
+        x2="17"
+        y2="25"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}

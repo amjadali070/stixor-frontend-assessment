@@ -9,6 +9,8 @@ import { getUrgencyReason } from "@/lib/utils/urgency";
 import type { Task } from "@/types/task";
 
 import { WarningTriangleIcon } from "./icons";
+import { NoMatchesEmptyState } from "./NoMatchesEmptyState";
+import { NoTasksEmptyState } from "./NoTasksEmptyState";
 import { PriorityBadge } from "./PriorityBadge";
 import { StatusBadge } from "./StatusBadge";
 
@@ -108,21 +110,59 @@ function TaskRow({ task, onOpen, now }: TaskRowProps) {
   );
 }
 
-export function TaskTable() {
+interface TaskTableProps {
+  onCreateTask: () => void;
+}
+
+export function TaskTable({ onCreateTask }: TaskTableProps) {
   const tasks = useTaskStore((s) => s.tasks);
+  const searchQuery = useTaskStore((s) => s.searchQuery);
+  const filters = useTaskStore((s) => s.filters);
   const setSelectedTaskId = useTaskStore((s) => s.setSelectedTaskId);
+  const clearFilters = useTaskStore((s) => s.clearFilters);
+  const setSearchQuery = useTaskStore((s) => s.setSearchQuery);
 
   // One snapshot per render, shared by the sort and every row's urgency
   // marker, so they always agree on "now" instead of drifting by
   // milliseconds across separate `new Date()` calls. Memoizing this
   // further is Task 11.2/11.3's job, not this one's.
   const now = new Date();
-  const sortedTasks = sortTasks(tasks, now);
+
+  // No filtering pipeline exists yet (Task 5.2 owns `applyFilters`), so
+  // this is every task, not a filtered subset — see DECISIONS.md. Reading
+  // real search/filter state now means the "no matches" branch below is
+  // correctly wired and ready the moment Phase 5 lands, rather than dead
+  // code that has to be rebuilt then.
+  const visibleTasks = tasks;
+  const sortedTasks = sortTasks(visibleTasks, now);
 
   const handleOpen = useCallback(
     (id: string) => setSelectedTaskId(id),
     [setSelectedTaskId],
   );
+
+  const activeFilterCount =
+    filters.priority.length + filters.status.length + filters.assignee.length;
+  const hasActiveSearchOrFilters = searchQuery !== "" || activeFilterCount > 0;
+
+  const handleClearFilters = useCallback(() => {
+    clearFilters();
+    setSearchQuery("");
+  }, [clearFilters, setSearchQuery]);
+
+  if (tasks.length === 0) {
+    return <NoTasksEmptyState onCreateTask={onCreateTask} />;
+  }
+
+  if (hasActiveSearchOrFilters && sortedTasks.length === 0) {
+    return (
+      <NoMatchesEmptyState
+        searchQuery={searchQuery}
+        activeFilterCount={activeFilterCount}
+        onClearFilters={handleClearFilters}
+      />
+    );
+  }
 
   return (
     <div className="border-border bg-surface max-h-[70vh] overflow-auto rounded-lg border">

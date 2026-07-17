@@ -7,6 +7,9 @@ import { useTasks } from "@/hooks/useTasks";
 export default function DashboardPage() {
   const { tasks, isLoading, error } = useTasks();
 
+  // TODO(Task 7.1): open CreateTaskModal. No-op until that exists.
+  const handleCreateTask = () => {};
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <header className="mb-6">
@@ -16,14 +19,14 @@ export default function DashboardPage() {
         </p>
       </header>
 
-      {/* Dedicated empty and error components land with later list-view
-          tasks; this interim error text is a plain fallback until then. */}
+      {/* Dedicated error component lands with a later list-view task; this
+          interim error text is a plain fallback until then. */}
       {isLoading ? (
         <TaskTableSkeleton />
       ) : error ? (
         <p className="text-destructive text-sm">{error}</p>
       ) : (
-        <TaskTable />
+        <TaskTable onCreateTask={handleCreateTask} />
       )}
     </main>
   );
