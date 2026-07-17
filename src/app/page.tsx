@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 
+import { FilterBar } from "@/components/filters/FilterBar";
 import { SearchBar } from "@/components/filters/SearchBar";
 import { ErrorBanner } from "@/components/task-list/ErrorBanner";
 import { TaskTable } from "@/components/task-list/TaskTable";
@@ -25,16 +26,26 @@ export default function DashboardPage() {
         </p>
       </header>
 
+      {/* useSearchParams (inside useSearch/useFilters) needs a Suspense
+          boundary so this static page can still prerender; fallbacks match
+          each real control's height to avoid layout jump. */}
       <div className="mb-4 max-w-sm">
-        {/* useSearchParams (inside useSearch) needs a Suspense boundary so
-            this static page can still prerender; fallback matches the real
-            input's height (border + py-2 + text-sm) to avoid layout jump. */}
         <Suspense
           fallback={
             <div className="bg-muted h-[38px] w-full animate-pulse rounded-md" />
           }
         >
           <SearchBar />
+        </Suspense>
+      </div>
+
+      <div className="mb-4">
+        <Suspense
+          fallback={
+            <div className="bg-muted h-[52px] w-full animate-pulse rounded-md" />
+          }
+        >
+          <FilterBar />
         </Suspense>
       </div>
 
@@ -52,7 +63,9 @@ export default function DashboardPage() {
       {isLoading ? (
         <TaskTableSkeleton />
       ) : error && !hasStaleData ? null : (
-        <TaskTable onCreateTask={handleCreateTask} />
+        <Suspense fallback={<TaskTableSkeleton />}>
+          <TaskTable onCreateTask={handleCreateTask} />
+        </Suspense>
       )}
     </main>
   );

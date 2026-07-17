@@ -1,11 +1,17 @@
 "use client";
 
 import { format } from "date-fns";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
-import { useTaskStore } from "@/lib/store/useTaskStore";
+import { EMPTY_FILTERS, useTaskStore } from "@/lib/store/useTaskStore";
+import { applyFilters } from "@/lib/utils/applyFilters";
 import { sortTasks } from "@/lib/utils/sortTasks";
 import { getUrgencyReason } from "@/lib/utils/urgency";
+import {
+  applyFiltersToParams,
+  applySearchToParams,
+} from "@/lib/utils/urlFilters";
 import type { Task } from "@/types/task";
 
 import { HighlightedText } from "./HighlightedText";
@@ -117,12 +123,16 @@ interface TaskTableProps {
 }
 
 export function TaskTable({ onCreateTask }: TaskTableProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const tasks = useTaskStore((s) => s.tasks);
   const searchQuery = useTaskStore((s) => s.searchQuery);
   const filters = useTaskStore((s) => s.filters);
   const setSelectedTaskId = useTaskStore((s) => s.setSelectedTaskId);
-  const clearFilters = useTaskStore((s) => s.clearFilters);
-  const setSearchQuery = useTaskStore((s) => s.setSearchQuery);
+  const clearFiltersInStore = useTaskStore((s) => s.clearFilters);
+  const setSearchQueryInStore = useTaskStore((s) => s.setSearchQuery);
 
   // One snapshot per render, shared by the sort and every row's urgency
   // marker, so they always agree on "now" instead of drifting by
@@ -130,12 +140,7 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
   // further is Task 11.2/11.3's job, not this one's.
   const now = new Date();
 
-  // No filtering pipeline exists yet (Task 5.2 owns `applyFilters`), so
-  // this is every task, not a filtered subset — see DECISIONS.md. Reading
-  // real search/filter state now means the "no matches" branch below is
-  // correctly wired and ready the moment Phase 5 lands, rather than dead
-  // code that has to be rebuilt then.
-  const visibleTasks = tasks;
+  const visibleTasks = applyFilters(tasks, filters, searchQuery);
   const sortedTasks = sortTasks(visibleTasks, now);
 
   const handleOpen = useCallback(
@@ -147,10 +152,31 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
     filters.priority.length + filters.status.length + filters.assignee.length;
   const hasActiveSearchOrFilters = searchQuery !== "" || activeFilterCount > 0;
 
+  // Builds one combined URLSearchParams and issues a single router.replace,
+  // rather than calling useFilters().clearFilters() and useSearch().setQuery
+  // back-to-back — each of those independently reads its own snapshot of
+  // the current URL and writes a full replacement, so calling both in the
+  // same tick raced: the second call's snapshot didn't yet reflect the
+  // first's update, and clobbered it (filters clearing dropped `q` but
+  // left `priority`/`status` in the URL). See DECISIONS.md.
   const handleClearFilters = useCallback(() => {
-    clearFilters();
-    setSearchQuery("");
-  }, [clearFilters, setSearchQuery]);
+    clearFiltersInStore();
+    setSearchQueryInStore("");
+    const params = applySearchToParams(
+      applyFiltersToParams(new URLSearchParams(searchParams), EMPTY_FILTERS),
+      "",
+    );
+    const queryString = params.toString();
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      scroll: false,
+    });
+  }, [
+    clearFiltersInStore,
+    setSearchQueryInStore,
+    searchParams,
+    pathname,
+    router,
+  ]);
 
   if (tasks.length === 0) {
     return <NoTasksEmptyState onCreateTask={onCreateTask} />;
