@@ -1,14 +1,17 @@
 "use client";
 
+import { ErrorBanner } from "@/components/task-list/ErrorBanner";
 import { TaskTable } from "@/components/task-list/TaskTable";
 import { TaskTableSkeleton } from "@/components/task-list/TaskTableSkeleton";
 import { useTasks } from "@/hooks/useTasks";
 
 export default function DashboardPage() {
-  const { tasks, isLoading, error } = useTasks();
+  const { tasks, isLoading, error, refetch } = useTasks();
 
   // TODO(Task 7.1): open CreateTaskModal. No-op until that exists.
   const handleCreateTask = () => {};
+
+  const hasStaleData = error !== null && tasks.length > 0;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -19,13 +22,20 @@ export default function DashboardPage() {
         </p>
       </header>
 
-      {/* Dedicated error component lands with a later list-view task; this
-          interim error text is a plain fallback until then. */}
+      {error && (
+        <ErrorBanner
+          message={
+            hasStaleData
+              ? `Couldn't refresh tasks: ${error} Showing the last loaded data.`
+              : error
+          }
+          onRetry={() => void refetch()}
+        />
+      )}
+
       {isLoading ? (
         <TaskTableSkeleton />
-      ) : error ? (
-        <p className="text-destructive text-sm">{error}</p>
-      ) : (
+      ) : error && !hasStaleData ? null : (
         <TaskTable onCreateTask={handleCreateTask} />
       )}
     </main>
