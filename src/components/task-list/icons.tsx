@@ -120,3 +120,36 @@ export function CheckCircleIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+/** Urgency marker (overdue / due-soon-and-high-priority) — deliberately a
+ * different silhouette from every badge icon above so it can't be confused
+ * with a priority or status glyph at a glance. */
+export function WarningTriangleIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width="12"
+      height="12"
+      aria-hidden="true"
+      className={className ?? "shrink-0"}
+    >
+      <path
+        d="M8 2.4 14.1 12.8H1.9L8 2.4Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <line
+        x1="8"
+        y1="6.4"
+        x2="8"
+        y2="9.4"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <circle cx="8" cy="11.1" r="0.9" fill="currentColor" />
+    </svg>
+  );
+}

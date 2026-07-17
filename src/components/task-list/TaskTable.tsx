@@ -4,8 +4,10 @@ import { format } from "date-fns";
 import { useCallback } from "react";
 
 import { useTaskStore } from "@/lib/store/useTaskStore";
+import { getUrgencyReason } from "@/lib/utils/urgency";
 import type { Task } from "@/types/task";
 
+import { WarningTriangleIcon } from "./icons";
 import { PriorityBadge } from "./PriorityBadge";
 import { StatusBadge } from "./StatusBadge";
 
@@ -35,6 +37,7 @@ interface TaskRowProps {
 
 function TaskRow({ task, onOpen }: TaskRowProps) {
   const open = () => onOpen(task.id);
+  const urgencyReason = getUrgencyReason(task);
 
   return (
     <tr
@@ -49,8 +52,28 @@ function TaskRow({ task, onOpen }: TaskRowProps) {
       }}
       className="border-border hover:bg-muted focus-visible:bg-muted focus-visible:ring-ring group cursor-pointer border-b transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-inset"
     >
-      <td className="truncate px-4 py-3 font-medium" title={task.title}>
-        {task.title}
+      <td
+        className={`border-l-4 px-4 py-3 font-medium ${
+          urgencyReason ? "border-l-destructive" : "border-l-transparent"
+        }`}
+      >
+        <span className="flex min-w-0 items-center gap-1.5">
+          {urgencyReason && (
+            <span
+              role="img"
+              aria-label={urgencyReason === "overdue" ? "Overdue" : "Due soon"}
+              title={
+                urgencyReason === "overdue" ? "Overdue" : "Due within 24 hours"
+              }
+              className="text-destructive shrink-0"
+            >
+              <WarningTriangleIcon />
+            </span>
+          )}
+          <span className="min-w-0 truncate" title={task.title}>
+            {task.title}
+          </span>
+        </span>
       </td>
       <td className="px-4 py-3">
         <span className="block truncate" title={task.customer.name}>
