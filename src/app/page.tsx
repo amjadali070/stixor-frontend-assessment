@@ -9,10 +9,8 @@ export default function DashboardPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <header className="mb-6">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          Tasks
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="text-2xl font-semibold">Tasks</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
           {isLoading ? "Loading…" : `${tasks.length} tasks`}
         </p>
       </header>
@@ -20,11 +18,9 @@ export default function DashboardPage() {
       {/* Interim states; dedicated skeleton, empty, and error components land
           with the rest of the list-view work. */}
       {isLoading ? (
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Loading tasks…
-        </p>
+        <p className="text-muted-foreground text-sm">Loading tasks…</p>
       ) : error ? (
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p className="text-destructive text-sm">{error}</p>
       ) : (
         <TaskTable />
       )}
