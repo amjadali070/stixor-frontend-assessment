@@ -267,3 +267,39 @@ export function NoMatchesIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+/** Unrecognized/malformed enum value — badge-sized (matches SignalBarsIcon's
+ * 12px), deliberately distinct from every priority/status glyph so a fallback
+ * badge never looks like it might be a real value. */
+export function QuestionMarkIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width="12"
+      height="12"
+      aria-hidden="true"
+      className={className ?? "shrink-0"}
+    >
+      <circle
+        cx="8"
+        cy="8"
+        r="5.75"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeDasharray="2.2 1.6"
+      />
+      <text
+        x="8"
+        y="11"
+        textAnchor="middle"
+        fontSize="7.5"
+        fontWeight="700"
+        fill="currentColor"
+        stroke="none"
+      >
+        ?
+      </text>
+    </svg>
+  );
+}

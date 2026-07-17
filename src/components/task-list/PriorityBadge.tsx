@@ -1,6 +1,6 @@
 import type { Priority } from "@/types/task";
 
-import { SignalBarsIcon } from "./icons";
+import { QuestionMarkIcon, SignalBarsIcon } from "./icons";
 
 /**
  * Colors verified at ≥6.3:1 contrast (light: text-800 on bg-100; dark:
@@ -28,18 +28,38 @@ const PRIORITY_STYLES: Record<
   },
 };
 
+// Verified 7.03:1 (light) / 6.28:1 (dark) contrast — see DECISIONS.md.
+const UNKNOWN_CLASSNAME =
+  "bg-zinc-100 text-zinc-600 border-zinc-300 border-dashed dark:border-zinc-500/40 dark:bg-zinc-500/10 dark:text-zinc-400";
+
 interface PriorityBadgeProps {
   priority: Priority;
 }
 
+/**
+ * `priority` is typed as `Priority`, but malformed/legacy runtime data can
+ * violate that contract — the object lookup below must never throw, so an
+ * unrecognized value falls back to a visibly distinct neutral badge instead.
+ */
 export function PriorityBadge({ priority }: PriorityBadgeProps) {
-  const { level, className } = PRIORITY_STYLES[priority];
+  const style = PRIORITY_STYLES[priority];
+
+  if (!style) {
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${UNKNOWN_CLASSNAME}`}
+      >
+        <QuestionMarkIcon />
+        {priority == null ? "Unknown" : String(priority)}
+      </span>
+    );
+  }
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${style.className}`}
     >
-      <SignalBarsIcon level={level} />
+      <SignalBarsIcon level={style.level} />
       {priority}
     </span>
   );

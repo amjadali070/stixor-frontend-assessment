@@ -182,4 +182,27 @@ function generateTasks(): Task[] {
   return tasks;
 }
 
-export const seedTasks: Task[] = generateTasks();
+/**
+ * Deliberately malformed — demonstrates Task 3.8's defensive rendering to
+ * anyone browsing the seeded data: an unrecognized priority/status value
+ * (fall back to a neutral badge, not a crash), a null assignee ("Unassigned"),
+ * and an unparseable due date ("No due date"). The `as unknown as` casts are
+ * intentional: real malformed data (a stale schema, a hand-edited record)
+ * wouldn't type-check either — this simulates that without disabling type
+ * safety anywhere else in the app.
+ */
+const MALFORMED_DEMO_TASK: Task = {
+  id: "task-malformed-demo",
+  title: "Malformed task (Task 3.8 defensive-rendering demo)",
+  description:
+    "Deliberately invalid priority/status values, a null assignee, and an unparseable due date, verifying the UI never crashes on bad data.",
+  customer: { id: "cust-demo", name: "Demo Customer" },
+  priority: "Urgent" as unknown as Task["priority"],
+  status: "Blocked" as unknown as Task["status"],
+  dueDate: "not-a-real-date",
+  assignee: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+
+export const seedTasks: Task[] = [...generateTasks(), MALFORMED_DEMO_TASK];
