@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 
+import { ActiveFilterChips } from "@/components/filters/ActiveFilterChips";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { SearchBar } from "@/components/filters/SearchBar";
 import { ErrorBanner } from "@/components/task-list/ErrorBanner";
@@ -48,6 +49,10 @@ export default function DashboardPage() {
           <FilterBar />
         </Suspense>
       </div>
+
+      <Suspense fallback={null}>
+        <ActiveFilterChips />
+      </Suspense>
 
       {error && (
         <ErrorBanner
