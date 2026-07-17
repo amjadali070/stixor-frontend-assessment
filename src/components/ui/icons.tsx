@@ -1,5 +1,9 @@
-/** Shared small icons for filters/ components — extracted from SearchBar
- * once ActiveFilterChips needed the same "remove" glyph (see DECISIONS.md). */
+/** Truly cross-cutting icons shared across feature areas (filters/,
+ * task-detail/, ...). Started in components/filters/icons.tsx when only
+ * SearchBar needed it; moved here once task-detail needed the same glyph
+ * too — a generic "X/close" icon has no filters-specific meaning, so
+ * importing it across feature-area boundaries was the wrong dependency
+ * direction. See DECISIONS.md. */
 
 interface IconProps {
   className?: string;

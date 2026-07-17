@@ -2,9 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { XIcon } from "@/components/ui/icons";
 import { useSearch } from "@/hooks/useSearch";
-
-import { XIcon } from "./icons";
 
 const DEBOUNCE_MS = 300;
 

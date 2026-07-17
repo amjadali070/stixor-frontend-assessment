@@ -1,11 +1,11 @@
 "use client";
 
-import { format } from "date-fns";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
 import { EMPTY_FILTERS, useTaskStore } from "@/lib/store/useTaskStore";
 import { applyFilters } from "@/lib/utils/applyFilters";
+import { formatDueDate } from "@/lib/utils/formatDueDate";
 import { writePersistedFilters } from "@/lib/utils/persistedFilters";
 import { sortTasks } from "@/lib/utils/sortTasks";
 import { getUrgencyReason } from "@/lib/utils/urgency";
@@ -33,13 +33,6 @@ const COLUMNS = [
   { label: "Due Date", width: "w-[14%]" },
   { label: "Assignee", width: "w-[14%]" },
 ] as const;
-
-function formatDueDate(iso: string): string {
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime())
-    ? "No due date"
-    : format(date, "MMM d, yyyy");
-}
 
 interface TaskRowProps {
   task: Task;

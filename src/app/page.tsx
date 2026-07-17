@@ -5,13 +5,20 @@ import { Suspense } from "react";
 import { ActiveFilterChips } from "@/components/filters/ActiveFilterChips";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { SearchBar } from "@/components/filters/SearchBar";
+import { TaskDetailPanel } from "@/components/task-detail/TaskDetailPanel";
 import { ErrorBanner } from "@/components/task-list/ErrorBanner";
 import { TaskTable } from "@/components/task-list/TaskTable";
 import { TaskTableSkeleton } from "@/components/task-list/TaskTableSkeleton";
 import { useTasks } from "@/hooks/useTasks";
+import { useTaskStore } from "@/lib/store/useTaskStore";
 
 export default function DashboardPage() {
   const { tasks, isLoading, error, refetch } = useTasks();
+  const selectedTaskId = useTaskStore((s) => s.selectedTaskId);
+  const setSelectedTaskId = useTaskStore((s) => s.setSelectedTaskId);
+  // Looked up from the raw (unfiltered) task list -- an open panel should
+  // stay showing its task even if a filter change would hide that row.
+  const selectedTask = tasks.find((t) => t.id === selectedTaskId) ?? null;
 
   // TODO(Task 7.1): open CreateTaskModal. No-op until that exists.
   const handleCreateTask = () => {};
@@ -71,6 +78,13 @@ export default function DashboardPage() {
         <Suspense fallback={<TaskTableSkeleton />}>
           <TaskTable onCreateTask={handleCreateTask} />
         </Suspense>
+      )}
+
+      {selectedTask && (
+        <TaskDetailPanel
+          task={selectedTask}
+          onClose={() => setSelectedTaskId(null)}
+        />
       )}
     </main>
   );

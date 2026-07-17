@@ -1,11 +1,10 @@
 "use client";
 
+import { XIcon } from "@/components/ui/icons";
 import { useFilters } from "@/hooks/useFilters";
 import { useTaskStore } from "@/lib/store/useTaskStore";
 import { UNASSIGNED_FILTER_KEY } from "@/lib/utils/applyFilters";
 import { getAssigneeOptions } from "@/lib/utils/getAssigneeOptions";
-
-import { XIcon } from "./icons";
 
 interface ChipProps {
   label: string;
