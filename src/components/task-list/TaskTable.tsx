@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { useCallback } from "react";
 
 import { useTaskStore } from "@/lib/store/useTaskStore";
+import { sortTasks } from "@/lib/utils/sortTasks";
 import { getUrgencyReason } from "@/lib/utils/urgency";
 import type { Task } from "@/types/task";
 
@@ -33,11 +34,12 @@ function formatDueDate(iso: string): string {
 interface TaskRowProps {
   task: Task;
   onOpen: (id: string) => void;
+  now: Date;
 }
 
-function TaskRow({ task, onOpen }: TaskRowProps) {
+function TaskRow({ task, onOpen, now }: TaskRowProps) {
   const open = () => onOpen(task.id);
-  const urgencyReason = getUrgencyReason(task);
+  const urgencyReason = getUrgencyReason(task, now);
 
   return (
     <tr
@@ -110,6 +112,13 @@ export function TaskTable() {
   const tasks = useTaskStore((s) => s.tasks);
   const setSelectedTaskId = useTaskStore((s) => s.setSelectedTaskId);
 
+  // One snapshot per render, shared by the sort and every row's urgency
+  // marker, so they always agree on "now" instead of drifting by
+  // milliseconds across separate `new Date()` calls. Memoizing this
+  // further is Task 11.2/11.3's job, not this one's.
+  const now = new Date();
+  const sortedTasks = sortTasks(tasks, now);
+
   const handleOpen = useCallback(
     (id: string) => setSelectedTaskId(id),
     [setSelectedTaskId],
@@ -136,8 +145,8 @@ export function TaskTable() {
           </tr>
         </thead>
         <tbody>
-          {tasks.map((task) => (
-            <TaskRow key={task.id} task={task} onOpen={handleOpen} />
+          {sortedTasks.map((task) => (
+            <TaskRow key={task.id} task={task} onOpen={handleOpen} now={now} />
           ))}
         </tbody>
       </table>
