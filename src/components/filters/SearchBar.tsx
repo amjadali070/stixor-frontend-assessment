@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useSearch } from "@/hooks/useSearch";
 
@@ -36,6 +36,37 @@ function SearchIcon() {
   );
 }
 
+function ClearIcon() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width="14"
+      height="14"
+      aria-hidden="true"
+      className="shrink-0"
+    >
+      <line
+        x1="4"
+        y1="4"
+        x2="12"
+        y2="12"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <line
+        x1="12"
+        y1="4"
+        x2="4"
+        y2="12"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 /**
  * Controlled input, debounced 300ms before writing to the store/URL (via
  * Task 2.3's `useSearch`). Note: typing here doesn't yet visibly filter the
@@ -46,6 +77,7 @@ export function SearchBar() {
   const { query, setQuery } = useSearch();
   const [inputValue, setInputValue] = useState(query);
   const [lastSyncedQuery, setLastSyncedQuery] = useState(query);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // React's documented "adjust state when a prop changes" pattern: resync
   // from external query changes (URL hydration, a future "Clear filters"
@@ -63,6 +95,14 @@ export function SearchBar() {
     return () => clearTimeout(timeout);
   }, [inputValue, query, setQuery]);
 
+  const handleClear = () => {
+    // Immediate, not debounced — a pending timeout (if any) becomes a
+    // no-op next render since inputValue and query both become "".
+    setInputValue("");
+    setQuery("");
+    inputRef.current?.focus();
+  };
+
   return (
     <div className="relative">
       <label htmlFor="task-search" className="sr-only">
@@ -72,13 +112,24 @@ export function SearchBar() {
         <SearchIcon />
       </span>
       <input
+        ref={inputRef}
         id="task-search"
         type="search"
         value={inputValue}
         onChange={(event) => setInputValue(event.target.value)}
         placeholder="Search by title or customer…"
-        className="border-border bg-surface focus-visible:ring-ring w-full rounded-md border py-2 pr-3 pl-9 text-sm outline-none focus-visible:ring-2"
+        className="border-border bg-surface focus-visible:ring-ring w-full rounded-md border py-2 pr-9 pl-9 text-sm outline-none focus-visible:ring-2 [&::-webkit-search-cancel-button]:appearance-none"
       />
+      {inputValue && (
+        <button
+          type="button"
+          onClick={handleClear}
+          aria-label="Clear search"
+          className="text-muted-foreground hover:text-foreground focus-visible:ring-ring absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer rounded focus-visible:ring-2 focus-visible:outline-none"
+        >
+          <ClearIcon />
+        </button>
+      )}
     </div>
   );
 }
