@@ -82,6 +82,7 @@ export default function DashboardPage() {
 
       {selectedTask && (
         <TaskDetailPanel
+          key={selectedTask.id}
           task={selectedTask}
           onClose={() => setSelectedTaskId(null)}
         />

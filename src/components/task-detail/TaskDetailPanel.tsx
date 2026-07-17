@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 
 import { XIcon } from "@/components/ui/icons";
 import { PriorityBadge } from "@/components/task-list/PriorityBadge";
@@ -29,26 +29,64 @@ function Field({ label, children }: FieldProps) {
   );
 }
 
+const FOCUSABLE_SELECTOR =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 /**
  * Full task view: a side drawer on desktop (>=1024px, Tailwind's `lg`
  * breakpoint), a full-screen overlay on mobile — one responsive layout,
  * not two separate DOM structures, driven entirely by `lg:` variants.
  *
- * Scope note: closes via "X" button, Escape, and backdrop click (Task
- * 6.3) — all three call the same `onClose`. Focus trapping and open/close
- * focus restoration are still Task 6.4's job, not built here.
+ * Closes via "X" button, Escape, and backdrop click (Task 6.3). Focus
+ * moves into the panel on open and restores to the triggering element on
+ * close, with Tab trapped inside the panel while open (Task 6.4). `key={
+ * task.id}` in page.tsx ensures a fresh mount per task, so this component
+ * never has to worry about "the task changed without a real close."
  */
 export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
-  // Global listener, not a local onKeyDown on the panel: focus isn't
-  // moved into the panel yet (Task 6.4), so Escape must work regardless
-  // of what currently has focus.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const triggerElementRef = useRef<HTMLElement | null>(null);
+
+  // Global, not scoped to the panel: Escape must work regardless of where
+  // focus currently is (a robust safety net even with Tab trapped below).
   useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
       if (event.key === "Escape") onClose();
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
+
+  // Capture what was focused before opening (to restore on close) and
+  // move focus into the panel. Runs once per mount/unmount.
+  useEffect(() => {
+    triggerElementRef.current = document.activeElement as HTMLElement | null;
+    closeButtonRef.current?.focus();
+
+    return () => {
+      triggerElementRef.current?.focus();
+    };
+  }, []);
+
+  function trapTab(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Tab" || !panelRef.current) return;
+
+    const focusable =
+      panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -59,9 +97,11 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
       />
 
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="task-detail-heading"
+        onKeyDown={trapTab}
         className="bg-surface relative flex h-full w-full flex-col overflow-y-auto lg:w-[480px] lg:max-w-[90vw] lg:shadow-xl"
       >
         <div className="border-border flex items-start justify-between gap-4 border-b px-6 py-4">
@@ -72,6 +112,7 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
             {task.title}
           </h2>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             aria-label="Close task details"
