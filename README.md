@@ -189,9 +189,12 @@ None of these are things I'd frame as "the take-home is incomplete" — they're 
 
 ## AI Usage
 
-I used **Claude Code** for essentially the entire build, working phase by phase rather than asking for the whole app at once.
+I used **Claude Fable 5** and **Claude Sonnet 5** (orchestrated via Claude Code) for the development of this dashboard, working incrementally phase by phase. 
 
-**How I actually worked:** I kept my own task breakdown (a big markdown file, not part of the submission) splitting the assignment into around 15 phases: scaffold, mock API, state layer, dashboard list, search, filtering, detail view, create, update, responsive, accessibility, performance, onboarding, bonus features, docs. Each session I'd tell Claude which phase (or specific tasks within a phase) to build, it would implement it, and then, this part mattered a lot to me, I had it actually launch a headless browser and click through the feature before calling it done, not just trust that the code compiled and lint passed. That caught real bugs more than once (see below). Once a phase was verified working, one commit, then on to the next.
+* **Claude Fable 5** was utilized as the primary reasoning engine and developer, planning the architecture, managing state optimizations with Zustand, and designing the list virtualization strategy.
+* **Claude Sonnet 5** co-authored the UI components, wrote individual fields, modals, and the test suite, and performed interactive testing sweeps of the dashboard.
+
+**How I actually worked:** I kept my own task breakdown (a big markdown file, not part of the submission) splitting the assignment into around 15 phases: scaffold, mock API, state layer, dashboard list, search, filtering, detail view, create, update, responsive, accessibility, performance, onboarding, bonus features, docs. Each session I'd tell the AI which phase (or specific tasks within a phase) to build, it would implement it, and then, this part mattered a lot to me, I had it actually launch a headless browser and click through the feature before calling it done, not just trust that the code compiled and lint passed. That caught real bugs more than once (see below). Once a phase was verified working, one commit, then on to the next.
 
 A few actual prompts from the build, close to verbatim:
 
