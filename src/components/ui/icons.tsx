@@ -241,6 +241,119 @@ export function InfoIcon({ className }: IconProps) {
   );
 }
 
+export function SunIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width="16"
+      height="16"
+      aria-hidden="true"
+      className={className ?? "shrink-0"}
+    >
+      <circle
+        cx="8"
+        cy="8"
+        r="3.25"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
+      <line
+        x1="8"
+        y1="0.8"
+        x2="8"
+        y2="2.4"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <line
+        x1="8"
+        y1="13.6"
+        x2="8"
+        y2="15.2"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <line
+        x1="0.8"
+        y1="8"
+        x2="2.4"
+        y2="8"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <line
+        x1="13.6"
+        y1="8"
+        x2="15.2"
+        y2="8"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <line
+        x1="2.9"
+        y1="2.9"
+        x2="4"
+        y2="4"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <line
+        x1="12"
+        y1="12"
+        x2="13.1"
+        y2="13.1"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <line
+        x1="2.9"
+        y1="13.1"
+        x2="4"
+        y2="12"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <line
+        x1="12"
+        y1="4"
+        x2="13.1"
+        y2="2.9"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function MoonIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width="16"
+      height="16"
+      aria-hidden="true"
+      className={className ?? "shrink-0"}
+    >
+      <path
+        d="M13.6 9.8A5.6 5.6 0 0 1 6.2 2.4a5.8 5.8 0 1 0 7.4 7.4Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function SpinnerIcon({ className }: IconProps) {
   return (
     <svg

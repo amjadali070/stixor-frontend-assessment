@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useState,
   type CSSProperties,
 } from "react";
 import { List, useListRef, type RowComponentProps } from "react-window";
@@ -26,6 +27,7 @@ import {
 import { VIRTUALIZATION_THRESHOLD } from "@/lib/utils/virtualization";
 import { STATUSES, type Status, type Task } from "@/types/task";
 
+import { BulkActionBar } from "./BulkActionBar";
 import { HighlightedText } from "./HighlightedText";
 import { WarningTriangleIcon } from "./icons";
 import { NoMatchesEmptyState } from "./NoMatchesEmptyState";
@@ -67,6 +69,8 @@ interface TaskRowProps {
   searchQuery: string;
   isRecentlyCreated: boolean;
   onStatusChange: (taskId: string, status: Status) => void;
+  isSelected: boolean;
+  onToggleSelect: (taskId: string) => void;
   /** Only set when rendered inside react-window's virtualized List --
    * absolute positioning + a fixed height for that row's slot. */
   style?: CSSProperties;
@@ -94,6 +98,8 @@ const TaskRow = memo(function TaskRow({
   searchQuery,
   isRecentlyCreated,
   onStatusChange,
+  isSelected,
+  onToggleSelect,
   style,
 }: TaskRowProps) {
   const open = () => onOpen(task.id);
@@ -120,6 +126,20 @@ const TaskRow = memo(function TaskRow({
         isRecentlyCreated ? "bg-primary/10" : ""
       }`}
     >
+      <div
+        role="cell"
+        className="flex w-10 shrink-0 grow-0 items-center justify-center px-2 py-3"
+      >
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onToggleSelect(task.id)}
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+          aria-label={`Select ${task.title}`}
+          className="accent-primary h-4 w-4 cursor-pointer"
+        />
+      </div>
       <div
         role="cell"
         className={`shrink-0 grow-0 border-l-4 px-4 py-3 font-medium ${COLUMNS[0].width} ${
@@ -200,8 +220,10 @@ interface RowRendererProps {
   now: Date;
   searchQuery: string;
   recentlyCreatedTaskId: string | null;
+  selectedIds: Set<string>;
   onOpen: (id: string) => void;
   onStatusChange: (taskId: string, status: Status) => void;
+  onToggleSelect: (taskId: string) => void;
 }
 
 // The function react-window actually calls per visible row (index, style,
@@ -214,8 +236,10 @@ function RowRenderer({
   now,
   searchQuery,
   recentlyCreatedTaskId,
+  selectedIds,
   onOpen,
   onStatusChange,
+  onToggleSelect,
 }: RowComponentProps<RowRendererProps>) {
   const task = tasks[index];
   return (
@@ -224,8 +248,10 @@ function RowRenderer({
       now={now}
       searchQuery={searchQuery}
       isRecentlyCreated={task.id === recentlyCreatedTaskId}
+      isSelected={selectedIds.has(task.id)}
       onOpen={onOpen}
       onStatusChange={onStatusChange}
+      onToggleSelect={onToggleSelect}
       style={style}
     />
   );
@@ -265,6 +291,106 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
     (id: string) => setSelectedTaskId(id),
     [setSelectedTaskId],
   );
+
+  // Task 13.2: selection lives here (not in the Zustand store) since it's
+  // ephemeral, purely-UI state that nothing outside this component tree
+  // needs -- shared between the desktop table and `TaskCardList` (both
+  // rendered by this component), so a single "N selected" bulk action
+  // bar works regardless of which layout is currently visible.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkApplying, setIsBulkApplying] = useState(false);
+
+  const handleToggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  // Scoped to the *currently visible* (filtered) tasks -- selecting
+  // "all" while a search/filter is active selects what's actually on
+  // screen, not the full unfiltered 180-task set the user isn't looking
+  // at. Selections outside the current view (if any survived a filter
+  // change) are preserved either way, not clobbered.
+  const handleToggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const visibleIds = sortedTasks.map((t) => t.id);
+      const allVisibleSelected =
+        visibleIds.length > 0 && visibleIds.every((id) => next.has(id));
+      if (allVisibleSelected) {
+        visibleIds.forEach((id) => next.delete(id));
+      } else {
+        visibleIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }, [sortedTasks]);
+
+  const handleClearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  // Task 13.2: bulk status update, same optimistic-patch/rollback pattern
+  // as the single-row version (Task 8.3), just run across every selected
+  // id via Promise.allSettled instead of one updateTask call. Takes `ids`
+  // as an explicit argument rather than reading `selectedIds` from the
+  // closure so a partial-failure retry can target *just* the ids that
+  // actually failed, not whatever `selectedIds` has since become.
+  async function applyBulkStatusChange(ids: string[], status: Status) {
+    if (ids.length === 0) return;
+    setIsBulkApplying(true);
+
+    const previousById = new Map<string, Task>();
+    for (const id of ids) {
+      const previous = patchTask(id, { status });
+      if (previous) previousById.set(id, previous);
+    }
+
+    const results = await Promise.allSettled(
+      ids.map((id) =>
+        updateTask(id, { status }).then((updated) => ({ id, updated })),
+      ),
+    );
+
+    const failedIds: string[] = [];
+    results.forEach((result, i) => {
+      const id = ids[i];
+      if (result.status === "fulfilled") {
+        replaceTask(id, result.value.updated);
+      } else {
+        const previous = previousById.get(id);
+        if (previous) replaceTask(id, previous);
+        failedIds.push(id);
+      }
+    });
+
+    setIsBulkApplying(false);
+    setSelectedIds(failedIds.length === 0 ? new Set() : new Set(failedIds));
+
+    const succeededCount = ids.length - failedIds.length;
+    if (failedIds.length === 0) {
+      addToast({
+        message: `${succeededCount} task${succeededCount === 1 ? "" : "s"} updated to ${status}.`,
+        variant: "success",
+      });
+    } else {
+      addToast({
+        message:
+          succeededCount > 0
+            ? `${succeededCount} updated, ${failedIds.length} failed to update.`
+            : `Failed to update ${failedIds.length} task${failedIds.length === 1 ? "" : "s"}.`,
+        variant: "error",
+        action: {
+          label: "Retry failed",
+          onClick: () => void applyBulkStatusChange(failedIds, status),
+        },
+      });
+    }
+  }
 
   // Task 8.2 + 8.3: optimistic status change with rollback on failure,
   // same pattern as Create/Edit. Task 11.2 needs this to be *stable*
@@ -367,6 +493,24 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
     handleHighlightExpire,
   ]);
 
+  // Tri-state "select all" checkbox: checked when every currently-visible
+  // task is selected, indeterminate when some (but not all) are. HTML
+  // checkboxes have no declarative `indeterminate` JSX prop -- it's a DOM
+  // property, not an attribute, so it has to be set imperatively.
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  const selectedCountInView = sortedTasks.filter((t) =>
+    selectedIds.has(t.id),
+  ).length;
+  const allVisibleSelected =
+    sortedTasks.length > 0 && selectedCountInView === sortedTasks.length;
+  const someVisibleSelected = selectedCountInView > 0 && !allVisibleSelected;
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someVisibleSelected;
+    }
+  }, [someVisibleSelected]);
+
   const activeFilterCount = getActiveFilterCount(filters);
   const hasActiveSearchOrFilters = searchQuery !== "" || activeFilterCount > 0;
 
@@ -416,6 +560,15 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
 
   return (
     <>
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        isApplying={isBulkApplying}
+        onApply={(status) =>
+          void applyBulkStatusChange([...selectedIds], status)
+        }
+        onClear={handleClearSelection}
+      />
+
       {/* Task 9.1: the table doesn't work under ~768px -- TaskCardList
           replaces it below `md`, fed the exact same sortedTasks/handlers
           computed above so there's one source of truth. */}
@@ -433,6 +586,23 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
               role="row"
               className="border-border bg-muted sticky top-0 z-10 flex border-b"
             >
+              <div
+                role="columnheader"
+                className="flex w-10 shrink-0 grow-0 items-center justify-center px-2 py-3"
+              >
+                <input
+                  ref={selectAllRef}
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  onChange={handleToggleSelectAll}
+                  aria-label={
+                    allVisibleSelected
+                      ? "Deselect all tasks"
+                      : "Select all tasks"
+                  }
+                  className="accent-primary h-4 w-4 cursor-pointer"
+                />
+              </div>
               {COLUMNS.map((column) => (
                 <div
                   key={column.label}
@@ -457,8 +627,10 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
                   now,
                   searchQuery,
                   recentlyCreatedTaskId,
+                  selectedIds,
                   onOpen: handleOpen,
                   onStatusChange: handleStatusChange,
+                  onToggleSelect: handleToggleSelect,
                 }}
                 style={{ height: "70vh" }}
               />
@@ -472,6 +644,8 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
                   searchQuery={searchQuery}
                   isRecentlyCreated={task.id === recentlyCreatedTaskId}
                   onStatusChange={handleStatusChange}
+                  isSelected={selectedIds.has(task.id)}
+                  onToggleSelect={handleToggleSelect}
                 />
               ))
             )}
@@ -485,9 +659,11 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
           now={now}
           searchQuery={searchQuery}
           recentlyCreatedTaskId={recentlyCreatedTaskId}
+          selectedIds={selectedIds}
           onOpen={handleOpen}
           onHighlightExpire={handleHighlightExpire}
           onStatusChange={handleStatusChange}
+          onToggleSelect={handleToggleSelect}
         />
       </div>
     </>

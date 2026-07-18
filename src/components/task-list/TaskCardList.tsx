@@ -27,6 +27,8 @@ interface TaskCardProps {
   searchQuery: string;
   isRecentlyCreated: boolean;
   onStatusChange: (taskId: string, status: Status) => void;
+  isSelected: boolean;
+  onToggleSelect: (taskId: string) => void;
   /** Only set when rendered inside react-window's virtualized List. */
   style?: CSSProperties;
 }
@@ -44,6 +46,8 @@ const TaskCard = memo(function TaskCard({
   searchQuery,
   isRecentlyCreated,
   onStatusChange,
+  isSelected,
+  onToggleSelect,
   style,
 }: TaskCardProps) {
   const open = () => onOpen(task.id);
@@ -71,24 +75,39 @@ const TaskCard = memo(function TaskCard({
       } ${isRecentlyCreated ? "bg-primary/10" : ""}`}
     >
       <div className="flex min-w-0 items-start justify-between gap-2">
-        <span className="flex min-w-0 items-center gap-1.5">
-          {urgencyReason && (
+        <span className="flex min-w-0 items-center gap-2">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggleSelect(task.id)}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+            aria-label={`Select ${task.title}`}
+            className="accent-primary h-[18px] w-[18px] shrink-0 cursor-pointer"
+          />
+          <span className="flex min-w-0 items-center gap-1.5">
+            {urgencyReason && (
+              <span
+                role="img"
+                aria-label={
+                  urgencyReason === "overdue" ? "Overdue" : "Due soon"
+                }
+                title={
+                  urgencyReason === "overdue"
+                    ? "Overdue"
+                    : "Due within 24 hours"
+                }
+                className="text-destructive mt-0.5 shrink-0"
+              >
+                <WarningTriangleIcon />
+              </span>
+            )}
             <span
-              role="img"
-              aria-label={urgencyReason === "overdue" ? "Overdue" : "Due soon"}
-              title={
-                urgencyReason === "overdue" ? "Overdue" : "Due within 24 hours"
-              }
-              className="text-destructive mt-0.5 shrink-0"
+              className="min-w-0 truncate text-sm font-medium"
+              title={task.title}
             >
-              <WarningTriangleIcon />
+              <HighlightedText text={task.title} query={searchQuery} />
             </span>
-          )}
-          <span
-            className="min-w-0 truncate text-sm font-medium"
-            title={task.title}
-          >
-            <HighlightedText text={task.title} query={searchQuery} />
           </span>
         </span>
         <span className="shrink-0 font-mono text-xs whitespace-nowrap tabular-nums">
@@ -137,8 +156,10 @@ interface RowRendererProps {
   now: Date;
   searchQuery: string;
   recentlyCreatedTaskId: string | null;
+  selectedIds: Set<string>;
   onOpen: (id: string) => void;
   onStatusChange: (taskId: string, status: Status) => void;
+  onToggleSelect: (taskId: string) => void;
 }
 
 function RowRenderer({
@@ -148,8 +169,10 @@ function RowRenderer({
   now,
   searchQuery,
   recentlyCreatedTaskId,
+  selectedIds,
   onOpen,
   onStatusChange,
+  onToggleSelect,
 }: RowComponentProps<RowRendererProps>) {
   const task = tasks[index];
   return (
@@ -158,8 +181,10 @@ function RowRenderer({
       now={now}
       searchQuery={searchQuery}
       isRecentlyCreated={task.id === recentlyCreatedTaskId}
+      isSelected={selectedIds.has(task.id)}
       onOpen={onOpen}
       onStatusChange={onStatusChange}
+      onToggleSelect={onToggleSelect}
       style={style}
     />
   );
@@ -170,9 +195,11 @@ interface TaskCardListProps {
   now: Date;
   searchQuery: string;
   recentlyCreatedTaskId: string | null;
+  selectedIds: Set<string>;
   onOpen: (id: string) => void;
   onHighlightExpire: () => void;
   onStatusChange: (taskId: string, status: Status) => void;
+  onToggleSelect: (taskId: string) => void;
 }
 
 /**
@@ -191,9 +218,11 @@ export function TaskCardList({
   now,
   searchQuery,
   recentlyCreatedTaskId,
+  selectedIds,
   onOpen,
   onHighlightExpire,
   onStatusChange,
+  onToggleSelect,
 }: TaskCardListProps) {
   const isVirtualized = tasks.length > VIRTUALIZATION_THRESHOLD;
   const listRef = useListRef(null);
@@ -240,8 +269,10 @@ export function TaskCardList({
           now,
           searchQuery,
           recentlyCreatedTaskId,
+          selectedIds,
           onOpen,
           onStatusChange,
+          onToggleSelect,
         }}
         style={{ height: "70vh" }}
       />
@@ -262,6 +293,8 @@ export function TaskCardList({
           searchQuery={searchQuery}
           isRecentlyCreated={task.id === recentlyCreatedTaskId}
           onStatusChange={onStatusChange}
+          isSelected={selectedIds.has(task.id)}
+          onToggleSelect={onToggleSelect}
         />
       ))}
     </ul>

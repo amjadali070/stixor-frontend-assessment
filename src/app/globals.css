@@ -36,8 +36,25 @@
   --font-mono: var(--font-mono);
 }
 
+/*
+ * Task 13.3: dark mode is manually toggleable, not just system-driven.
+ * `:root[data-theme="dark"]` (set by ThemeToggle, via the before-
+ * hydration script in layout.tsx) applies dark values unconditionally —
+ * an explicit user choice always wins. The `prefers-color-scheme` media
+ * query below is the *default* only: `:not([data-theme])` means it's
+ * skipped entirely once any explicit choice exists, so a user who picked
+ * "light" stays light even if their OS is set to dark, and vice versa.
+ *
+ * The two blocks intentionally repeat the same dark values rather than
+ * sharing one declaration — CSS has no clean way to parameterize an
+ * `@media` condition together with an attribute selector without either
+ * duplicating values or relying on nesting that (verified while writing
+ * this) silently gates the explicit-override block behind the media
+ * query too, defeating the whole point of an explicit override. Plain
+ * duplication is more code but is actually correct.
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
     --background: #0b1220;
     --foreground: #f1f5f9;
     --surface: #111827;
@@ -58,6 +75,20 @@
     --destructive-foreground: #1e293b;
     --ring: #60a5fa;
   }
+}
+
+:root[data-theme="dark"] {
+  --background: #0b1220;
+  --foreground: #f1f5f9;
+  --surface: #111827;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --border: #334155;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --destructive: #f87171;
+  --destructive-foreground: #1e293b;
+  --ring: #60a5fa;
 }
 
 body {

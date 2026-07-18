@@ -15,6 +15,7 @@ import { TaskTable } from "@/components/task-list/TaskTable";
 import { TaskTableSkeleton } from "@/components/task-list/TaskTableSkeleton";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { SpinnerIcon } from "@/components/ui/icons";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useTasks } from "@/hooks/useTasks";
 import { ApiError, deleteTask } from "@/lib/api/tasks";
@@ -134,13 +135,16 @@ export default function DashboardPage() {
             {isLoading ? "Loading…" : `${tasks.length} tasks`}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleCreateTask}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring shrink-0 cursor-pointer rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
-        >
-          + Create Task
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <ThemeToggle />
+          <button
+            type="button"
+            onClick={handleCreateTask}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring cursor-pointer rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+          >
+            + Create Task
+          </button>
+        </div>
       </header>
 
       {/* Task 12.1: points at search/filters/Create Task below, so it
