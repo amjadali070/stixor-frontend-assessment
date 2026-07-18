@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef, type CSSProperties } from "react";
+import { List, useListRef, type RowComponentProps } from "react-window";
 
 import { formatDueDate } from "@/lib/utils/formatDueDate";
 import { getUrgencyReason } from "@/lib/utils/urgency";
+import { VIRTUALIZATION_THRESHOLD } from "@/lib/utils/virtualization";
 import { STATUSES, type Status, type Task } from "@/types/task";
 
 import { HighlightedText } from "./HighlightedText";
@@ -12,47 +14,50 @@ import { PriorityBadge } from "./PriorityBadge";
 import { QuickStatusSelect } from "./QuickStatusSelect";
 import { StatusBadge } from "./StatusBadge";
 
+// Measured directly off a rendered card (Task 11.1) -- every card is
+// exactly this tall regardless of content, since (unlike the desktop
+// table's customer cell) the card's customer line always renders as one
+// truncated "name · company" span rather than two stacked lines.
+const VIRTUALIZED_CARD_HEIGHT = 129;
+
 interface TaskCardProps {
   task: Task;
   onOpen: (id: string) => void;
   now: Date;
   searchQuery: string;
   isRecentlyCreated: boolean;
-  onHighlightExpire: () => void;
   onStatusChange: (taskId: string, status: Status) => void;
+  /** Only set when rendered inside react-window's virtualized List. */
+  style?: CSSProperties;
 }
 
-function TaskCard({
+/**
+ * Task 11.2: wrapped in `React.memo`, same reasoning as `TaskRow`. No
+ * longer owns its own scroll-into-view effect (Task 7.6) -- moved to
+ * `TaskCardList`, since a virtualized card scrolled out of the visible
+ * window may not be mounted at all.
+ */
+const TaskCard = memo(function TaskCard({
   task,
   onOpen,
   now,
   searchQuery,
   isRecentlyCreated,
-  onHighlightExpire,
   onStatusChange,
+  style,
 }: TaskCardProps) {
   const open = () => onOpen(task.id);
   const urgencyReason = getUrgencyReason(task, now);
-  const cardRef = useRef<HTMLLIElement>(null);
   const hasRecognizedStatus = (STATUSES as readonly string[]).includes(
     task.status,
   );
 
-  // Same highlight/scroll-into-view behavior as TaskRow (Task 7.6) — the
-  // mobile card list gets a freshly created task scrolled into view too.
-  useEffect(() => {
-    if (!isRecentlyCreated) return;
-    cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    const timeout = setTimeout(onHighlightExpire, 2500);
-    return () => clearTimeout(timeout);
-  }, [isRecentlyCreated, onHighlightExpire]);
-
   return (
     <li
-      ref={cardRef}
       role="button"
       tabIndex={0}
       onClick={open}
+      data-task-id={task.id}
       aria-label={`Open details for ${task.title}`}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -60,6 +65,7 @@ function TaskCard({
           open();
         }
       }}
+      style={style}
       className={`border-border bg-surface active:bg-muted focus-visible:ring-ring flex min-h-[44px] cursor-pointer flex-col gap-2 border-b border-l-4 p-4 transition-colors duration-150 outline-none last:border-b-0 focus-visible:ring-2 focus-visible:ring-inset ${
         urgencyReason ? "border-l-destructive" : "border-l-transparent"
       } ${isRecentlyCreated ? "bg-primary/10" : ""}`}
@@ -123,6 +129,40 @@ function TaskCard({
       </div>
     </li>
   );
+});
+TaskCard.displayName = "TaskCard";
+
+interface RowRendererProps {
+  tasks: Task[];
+  now: Date;
+  searchQuery: string;
+  recentlyCreatedTaskId: string | null;
+  onOpen: (id: string) => void;
+  onStatusChange: (taskId: string, status: Status) => void;
+}
+
+function RowRenderer({
+  index,
+  style,
+  tasks,
+  now,
+  searchQuery,
+  recentlyCreatedTaskId,
+  onOpen,
+  onStatusChange,
+}: RowComponentProps<RowRendererProps>) {
+  const task = tasks[index];
+  return (
+    <TaskCard
+      task={task}
+      now={now}
+      searchQuery={searchQuery}
+      isRecentlyCreated={task.id === recentlyCreatedTaskId}
+      onOpen={onOpen}
+      onStatusChange={onStatusChange}
+      style={style}
+    />
+  );
 }
 
 interface TaskCardListProps {
@@ -136,19 +176,15 @@ interface TaskCardListProps {
 }
 
 /**
- * Task 9.1: a phone-width table doesn't work — `TaskTable`'s own
- * `min-w-[720px]` forces a horizontal scroll, and desktop-density row
- * heights are too small a tap target. Shown instead of `TaskTable` below
- * `md` (768px, matching the point most content stops fitting a 6-column
- * table); fed the exact same sorted/filtered `tasks` and event handlers
- * `TaskTable` already computed, so this is presentation only, not a
- * second independent data source that could drift from the table's.
+ * Task 9.1: a phone-width table doesn't work — shown instead of
+ * `TaskTable` below `md`, fed the exact same sorted/filtered `tasks` and
+ * event handlers `TaskTable` already computed.
  *
- * Overflow (Task 9.3): long titles/customer names truncate with the
- * native `title` attribute for the full string — no separate tap-to-
- * expand affordance was built, since tapping the card already opens
- * `TaskDetailPanel`, which shows the untruncated text. Building a second
- * expand mechanism on the card itself would duplicate that for no gain.
+ * Task 11.1: above `VIRTUALIZATION_THRESHOLD`, rows render through
+ * react-window's `List` (a real `<ul>` via `tagName="ul"`, each row a
+ * real `<li>`); below it, the same `TaskCard` is just `.map()`-ed
+ * directly. Overflow (Task 9.3) still needs no new mechanism -- see
+ * `TaskCard`'s own truncate + native `title` attribute.
  */
 export function TaskCardList({
   tasks,
@@ -159,8 +195,64 @@ export function TaskCardList({
   onHighlightExpire,
   onStatusChange,
 }: TaskCardListProps) {
+  const isVirtualized = tasks.length > VIRTUALIZATION_THRESHOLD;
+  const listRef = useListRef(null);
+  const containerRef = useRef<HTMLUListElement>(null);
+
+  // Task 7.6, moved out of TaskCard (see its docblock) for the same
+  // reason as TaskRow's: a virtualized, off-screen card may not be
+  // mounted, so it can't scroll itself into view.
+  useEffect(() => {
+    if (!recentlyCreatedTaskId) return;
+    const index = tasks.findIndex((t) => t.id === recentlyCreatedTaskId);
+
+    if (index !== -1) {
+      if (isVirtualized) {
+        listRef.current?.scrollToRow({
+          index,
+          align: "center",
+          behavior: "smooth",
+        });
+      } else {
+        containerRef.current
+          ?.querySelector(
+            `[data-task-id="${CSS.escape(recentlyCreatedTaskId)}"]`,
+          )
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+
+    const timeout = setTimeout(onHighlightExpire, 2500);
+    return () => clearTimeout(timeout);
+  }, [recentlyCreatedTaskId, tasks, isVirtualized, listRef, onHighlightExpire]);
+
+  if (isVirtualized) {
+    return (
+      <List
+        listRef={listRef}
+        tagName="ul"
+        className="border-border bg-surface rounded-lg border"
+        rowCount={tasks.length}
+        rowHeight={VIRTUALIZED_CARD_HEIGHT}
+        rowComponent={RowRenderer}
+        rowProps={{
+          tasks,
+          now,
+          searchQuery,
+          recentlyCreatedTaskId,
+          onOpen,
+          onStatusChange,
+        }}
+        style={{ height: "70vh" }}
+      />
+    );
+  }
+
   return (
-    <ul className="border-border bg-surface max-h-[70vh] overflow-auto rounded-lg border">
+    <ul
+      ref={containerRef}
+      className="border-border bg-surface max-h-[70vh] overflow-auto rounded-lg border"
+    >
       {tasks.map((task) => (
         <TaskCard
           key={task.id}
@@ -169,7 +261,6 @@ export function TaskCardList({
           now={now}
           searchQuery={searchQuery}
           isRecentlyCreated={task.id === recentlyCreatedTaskId}
-          onHighlightExpire={onHighlightExpire}
           onStatusChange={onStatusChange}
         />
       ))}

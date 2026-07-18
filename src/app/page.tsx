@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Suspense, useState } from "react";
 
 import { ActiveFilterChips } from "@/components/filters/ActiveFilterChips";
@@ -7,16 +8,52 @@ import { FilterBar } from "@/components/filters/FilterBar";
 import { MobileFilterSheet } from "@/components/filters/MobileFilterSheet";
 import { SearchBar } from "@/components/filters/SearchBar";
 import { TaskDetailPanel } from "@/components/task-detail/TaskDetailPanel";
-import { CreateTaskModal } from "@/components/task-form/CreateTaskModal";
-import { EditTaskModal } from "@/components/task-form/EditTaskModal";
 import { ErrorBanner } from "@/components/task-list/ErrorBanner";
 import { TaskTable } from "@/components/task-list/TaskTable";
 import { TaskTableSkeleton } from "@/components/task-list/TaskTableSkeleton";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { SpinnerIcon } from "@/components/ui/icons";
 import { useTasks } from "@/hooks/useTasks";
 import { ApiError, deleteTask } from "@/lib/api/tasks";
 import { useTaskStore } from "@/lib/store/useTaskStore";
 import { useToastStore } from "@/lib/store/useToastStore";
+
+// Task 11.4: neither modal is needed for the initial dashboard render (both
+// are gated behind `isCreateModalOpen`/`editingTaskId`, which start
+// false/null) -- dynamically importing them keeps their code, and
+// react-hook-form/zod's validation logic along with it, out of the initial
+// bundle entirely, fetched only the first time a user actually opens one.
+// `ssr: false` since a closed modal has no SSR/SEO value and this whole
+// page is already a client component.
+const CreateTaskModal = dynamic(
+  () =>
+    import("@/components/task-form/CreateTaskModal").then(
+      (m) => m.CreateTaskModal,
+    ),
+  { ssr: false, loading: () => <ModalLoadingFallback /> },
+);
+const EditTaskModal = dynamic(
+  () =>
+    import("@/components/task-form/EditTaskModal").then((m) => m.EditTaskModal),
+  { ssr: false, loading: () => <ModalLoadingFallback /> },
+);
+
+/** Brief loading state while a code-split modal's chunk downloads on its
+ * first open -- otherwise a button click would appear to do nothing for
+ * however long that fetch takes. */
+function ModalLoadingFallback() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+    >
+      <span className="text-primary-foreground">
+        <SpinnerIcon className="h-8 w-8" />
+      </span>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { tasks, isLoading, error, refetch } = useTasks();
