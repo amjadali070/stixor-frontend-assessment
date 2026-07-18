@@ -210,6 +210,37 @@ export function FilterIcon({ className }: IconProps) {
   );
 }
 
+export function InfoIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width="16"
+      height="16"
+      aria-hidden="true"
+      className={className ?? "shrink-0"}
+    >
+      <circle
+        cx="8"
+        cy="8"
+        r="6.25"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <circle cx="8" cy="5.1" r="0.9" fill="currentColor" />
+      <line
+        x1="8"
+        y1="7.6"
+        x2="8"
+        y2="11.4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function SpinnerIcon({ className }: IconProps) {
   return (
     <svg

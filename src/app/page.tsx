@@ -7,12 +7,15 @@ import { ActiveFilterChips } from "@/components/filters/ActiveFilterChips";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { MobileFilterSheet } from "@/components/filters/MobileFilterSheet";
 import { SearchBar } from "@/components/filters/SearchBar";
+import { FirstVisitHint } from "@/components/onboarding/FirstVisitHint";
+import { ShortcutsHelp } from "@/components/onboarding/ShortcutsHelp";
 import { TaskDetailPanel } from "@/components/task-detail/TaskDetailPanel";
 import { ErrorBanner } from "@/components/task-list/ErrorBanner";
 import { TaskTable } from "@/components/task-list/TaskTable";
 import { TaskTableSkeleton } from "@/components/task-list/TaskTableSkeleton";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { SpinnerIcon } from "@/components/ui/icons";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useTasks } from "@/hooks/useTasks";
 import { ApiError, deleteTask } from "@/lib/api/tasks";
 import { useTaskStore } from "@/lib/store/useTaskStore";
@@ -109,6 +112,19 @@ export default function DashboardPage() {
 
   const hasStaleData = error !== null && tasks.length > 0;
 
+  // Task 13.1: suppressed while any dialog is already open -- opening a
+  // second one via shortcut would break the app's own "never stack two
+  // dialogs" rule, and focusing search behind an open modal wouldn't do
+  // anything useful anyway.
+  const isAnyDialogOpen =
+    !!selectedTask || isCreateModalOpen || !!editingTask || !!deletingTask;
+
+  useKeyboardShortcuts({
+    onFocusSearch: () => document.getElementById("task-search")?.focus(),
+    onCreateTask: handleCreateTask,
+    isAnyDialogOpen,
+  });
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
       <header className="mb-6 flex items-start justify-between gap-4">
@@ -126,6 +142,11 @@ export default function DashboardPage() {
           + Create Task
         </button>
       </header>
+
+      {/* Task 12.1: points at search/filters/Create Task below, so it
+          renders above all three rather than at the very end of the
+          page. */}
+      <FirstVisitHint />
 
       {/* useSearchParams (inside useSearch/useFilters) needs a Suspense
           boundary so this static page can still prerender; fallbacks match
@@ -226,6 +247,8 @@ export default function DashboardPage() {
           }}
         />
       )}
+
+      <ShortcutsHelp />
     </main>
   );
 }
