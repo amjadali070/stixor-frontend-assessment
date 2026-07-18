@@ -3,7 +3,9 @@
 import { useState } from "react";
 
 import { SpinnerIcon } from "@/components/ui/icons";
-import { STATUSES, type Status } from "@/types/task";
+import type { Status } from "@/types/task";
+
+import { StatusMenu } from "./StatusMenu";
 
 interface BulkActionBarProps {
   selectedCount: number;
@@ -41,24 +43,13 @@ export function BulkActionBar({
         {selectedCount} task{selectedCount === 1 ? "" : "s"} selected
       </span>
 
-      <select
+      <StatusMenu
         value={pendingStatus}
-        onChange={(event) =>
-          setPendingStatus(event.target.value as Status | "")
-        }
+        onChange={setPendingStatus}
+        placeholder="Change status to…"
+        ariaLabel="Change status to"
         disabled={isApplying}
-        aria-label="Change status to"
-        className="border-border bg-surface focus-visible:ring-ring rounded-md border px-2 py-1.5 text-sm outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <option value="" disabled>
-          Change status to…
-        </option>
-        {STATUSES.map((status) => (
-          <option key={status} value={status}>
-            {status}
-          </option>
-        ))}
-      </select>
+      />
 
       <button
         type="button"

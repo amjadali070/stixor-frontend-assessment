@@ -260,7 +260,7 @@ export function TaskCardList({
       <List
         listRef={listRef}
         tagName="ul"
-        className="border-border bg-surface rounded-lg border"
+        className="border-border bg-surface rounded-lg border shadow-sm"
         rowCount={tasks.length}
         rowHeight={VIRTUALIZED_CARD_HEIGHT}
         rowComponent={RowRenderer}

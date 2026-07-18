@@ -37,18 +37,32 @@ import { QuickStatusSelect } from "./QuickStatusSelect";
 import { StatusBadge } from "./StatusBadge";
 import { TaskCardList } from "./TaskCardList";
 
-// Explicit widths so `truncate` on the title/customer cells actually has a
-// bound to clip against instead of the row growing to fit the longest
-// title and pushing every other column off-screen. `shrink-0 grow-0` on
-// each cell (Task 11.1) makes these percentages behave the same way
-// `table-layout: fixed` used to, now that rows are flex divs, not <tr>.
+// `grow-[N]` + `basis-0` (Task 11.1's replacement for literal `w-[X%]`)
+// distributes the row's free space by ratio, same intent as before, but
+// structurally can't overflow: percentage widths summed to 100% *in
+// addition to* the checkbox column's fixed 40px, which meant every row
+// was guaranteed to render 40px wider than its container (visible as a
+// permanent horizontal scrollbar on the virtualized list, even though the
+// page had plenty of unused width). Flex-grow distributes whatever space
+// is actually left after the 40px checkbox column, so the six columns
+// always sum to exactly 100% of what remains, never more.
+//
+// `min-w-0` (Title/Customer/Assignee) lets `truncate` do its job -- a flex
+// item's default `min-width: auto` otherwise refuses to shrink a cell
+// below its content's width, which is the other half of what caused the
+// original overflow. Priority/Status/Due Date instead get a real
+// `min-w-[Npx]` floor: their content (a badge, the status control, a
+// `whitespace-nowrap` date) shouldn't ever be squeezed below its own
+// natural size, but unlike the old `shrink-0`, that floor is an explicit
+// pixel value verified against real content, not "whatever `w-[X%]`
+// happens to compute to at a given viewport width."
 const COLUMNS = [
-  { label: "Title", width: "w-[28%]" },
-  { label: "Customer", width: "w-[18%]" },
-  { label: "Priority", width: "w-[12%]" },
-  { label: "Status", width: "w-[14%]" },
-  { label: "Due Date", width: "w-[14%]" },
-  { label: "Assignee", width: "w-[14%]" },
+  { label: "Title", className: "min-w-0 basis-0 grow-[28]" },
+  { label: "Customer", className: "min-w-0 basis-0 grow-[18]" },
+  { label: "Priority", className: "min-w-[132px] basis-0 grow-[12]" },
+  { label: "Status", className: "min-w-[180px] basis-0 grow-[14]" },
+  { label: "Due Date", className: "min-w-[104px] basis-0 grow-[14]" },
+  { label: "Assignee", className: "min-w-0 basis-0 grow-[18]" },
 ] as const;
 
 // Task 11.1: react-window can't virtualize real <tr> rows (it renders each
@@ -142,7 +156,7 @@ const TaskRow = memo(function TaskRow({
       </div>
       <div
         role="cell"
-        className={`shrink-0 grow-0 border-l-4 px-4 py-3 font-medium ${COLUMNS[0].width} ${
+        className={`border-l-4 px-4 py-3 font-medium ${COLUMNS[0].className} ${
           urgencyReason ? "border-l-destructive" : "border-l-transparent"
         }`}
       >
@@ -164,10 +178,7 @@ const TaskRow = memo(function TaskRow({
           </span>
         </span>
       </div>
-      <div
-        role="cell"
-        className={`shrink-0 grow-0 px-4 py-3 ${COLUMNS[1].width}`}
-      >
+      <div role="cell" className={`px-4 py-3 ${COLUMNS[1].className}`}>
         <span className="block truncate" title={task.customer.name}>
           <HighlightedText text={task.customer.name} query={searchQuery} />
         </span>
@@ -180,35 +191,46 @@ const TaskRow = memo(function TaskRow({
           </span>
         )}
       </div>
-      <div
-        role="cell"
-        className={`shrink-0 grow-0 px-4 py-3 ${COLUMNS[2].width}`}
-      >
-        <PriorityBadge priority={task.priority} />
+      <div role="cell" className={`px-4 py-3 ${COLUMNS[2].className}`}>
+        {/* A fixed-width, centered slot so every priority pill in the
+            column lines up regardless of label length ("Low" vs.
+            "Medium") -- PriorityBadge itself stays content-hugging, since
+            TaskDetailPanel/ErrorBanner use it inline where that's correct. */}
+        <div className="mx-auto w-24">
+          <PriorityBadge
+            priority={task.priority}
+            className="w-full justify-center"
+          />
+        </div>
+      </div>
+      <div role="cell" className={`px-4 py-3 ${COLUMNS[3].className}`}>
+        <div className="mx-auto w-36">
+          {hasRecognizedStatus ? (
+            <QuickStatusSelect
+              task={task}
+              onStatusChange={onStatusChange}
+              className="w-full"
+            />
+          ) : (
+            <StatusBadge
+              status={task.status}
+              className="w-full justify-center"
+            />
+          )}
+        </div>
       </div>
       <div
         role="cell"
-        className={`shrink-0 grow-0 px-4 py-3 ${COLUMNS[3].width}`}
-      >
-        {hasRecognizedStatus ? (
-          <QuickStatusSelect task={task} onStatusChange={onStatusChange} />
-        ) : (
-          <StatusBadge status={task.status} />
-        )}
-      </div>
-      <div
-        role="cell"
-        className={`shrink-0 grow-0 px-4 py-3 font-mono whitespace-nowrap tabular-nums ${COLUMNS[4].width}`}
+        className={`px-4 py-3 font-mono whitespace-nowrap tabular-nums ${COLUMNS[4].className}`}
       >
         {formatDueDate(task.dueDate)}
       </div>
-      <div
-        role="cell"
-        className={`shrink-0 grow-0 px-4 py-3 ${COLUMNS[5].width}`}
-      >
-        {task.assignee?.name ?? (
-          <span className="text-muted-foreground italic">Unassigned</span>
-        )}
+      <div role="cell" className={`px-4 py-3 ${COLUMNS[5].className}`}>
+        <span className="block truncate">
+          {task.assignee?.name ?? (
+            <span className="text-muted-foreground italic">Unassigned</span>
+          )}
+        </span>
       </div>
     </div>
   );
@@ -577,7 +599,7 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
           ref={containerRef}
           role="table"
           aria-label="Customer success tasks: title, customer, priority, status, due date, and assignee. Rows open the task's details."
-          className={`border-border bg-surface rounded-lg border ${
+          className={`border-border bg-surface rounded-lg border shadow-sm ${
             isVirtualized ? "" : "max-h-[70vh] overflow-auto"
           }`}
         >
@@ -607,7 +629,7 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
                 <div
                   key={column.label}
                   role="columnheader"
-                  className={`text-muted-foreground shrink-0 grow-0 px-4 py-3 text-xs font-semibold tracking-wide uppercase ${column.width}`}
+                  className={`text-muted-foreground px-4 py-3 text-xs font-semibold tracking-wide uppercase ${column.className}`}
                 >
                   {column.label}
                 </div>

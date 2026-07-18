@@ -7,7 +7,7 @@ import { QuestionMarkIcon, SignalBarsIcon } from "./icons";
  * text-300 on 15%-alpha-500 composited over the app's dark surface). See
  * DECISIONS.md for the full contrast table.
  */
-const PRIORITY_STYLES: Record<
+export const PRIORITY_STYLES: Record<
   Priority,
   { level: 1 | 2 | 3; className: string }
 > = {
@@ -34,6 +34,12 @@ const UNKNOWN_CLASSNAME =
 
 interface PriorityBadgeProps {
   priority: Priority;
+  /** Extra classes appended to the badge's own span -- lets a table column
+   * force every badge to the same fixed width (`w-full justify-center`
+   * inside a fixed-width centering wrapper) without hardcoding that here,
+   * since TaskDetailPanel/ErrorBanner render this badge inline where its
+   * default content-hugging width is the correct choice. */
+  className?: string;
 }
 
 /**
@@ -41,13 +47,16 @@ interface PriorityBadgeProps {
  * violate that contract — the object lookup below must never throw, so an
  * unrecognized value falls back to a visibly distinct neutral badge instead.
  */
-export function PriorityBadge({ priority }: PriorityBadgeProps) {
+export function PriorityBadge({
+  priority,
+  className = "",
+}: PriorityBadgeProps) {
   const style = PRIORITY_STYLES[priority];
 
   if (!style) {
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${UNKNOWN_CLASSNAME}`}
+        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${UNKNOWN_CLASSNAME} ${className}`}
       >
         <QuestionMarkIcon />
         {priority == null ? "Unknown" : String(priority)}
@@ -57,7 +66,7 @@ export function PriorityBadge({ priority }: PriorityBadgeProps) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${style.className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${style.className} ${className}`}
     >
       <SignalBarsIcon level={style.level} />
       {priority}

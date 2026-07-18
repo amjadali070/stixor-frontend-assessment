@@ -354,6 +354,55 @@ export function MoonIcon({ className }: IconProps) {
   );
 }
 
+/** Trigger affordance for `StatusMenu` and `FilterDropdown` — rotates 180°
+ * via the caller's className when the menu is open, so one glyph covers
+ * both states. */
+export function ChevronDownIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width="10"
+      height="10"
+      aria-hidden="true"
+      className={className ?? "shrink-0"}
+    >
+      <path
+        d="M3.5 6 8 10.5 12.5 6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Plain checkmark (no circle) — a "this is currently selected/active"
+ * marker shared by `StatusMenu`'s open panel and the colored filter chips,
+ * deliberately undecorated so it doesn't compete with the circled
+ * CheckCircleIcon above (which means "Completed" specifically). */
+export function CheckIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width="12"
+      height="12"
+      aria-hidden="true"
+      className={className ?? "shrink-0"}
+    >
+      <path
+        d="M3.5 8.5 6.5 11.5 12.5 4.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function SpinnerIcon({ className }: IconProps) {
   return (
     <svg

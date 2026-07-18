@@ -140,7 +140,7 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={handleCreateTask}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring cursor-pointer rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring cursor-pointer rounded-md px-4 py-2 text-sm font-medium shadow-sm transition-all hover:shadow-md focus-visible:ring-2 focus-visible:outline-none"
           >
             + Create Task
           </button>

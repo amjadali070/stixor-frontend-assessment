@@ -7,24 +7,24 @@ import { useDialogBehavior } from "@/hooks/useDialogBehavior";
 import { useFilters } from "@/hooks/useFilters";
 import { getActiveFilterCount } from "@/lib/utils/applyFilters";
 
-import { FilterBar } from "./FilterBar";
+import { FilterChipsPanel } from "./FilterChipsPanel";
 
 /**
- * Task 9.4: `FilterBar`'s multi-group checkbox layout takes too much
+ * Task 9.4: `FilterChipsPanel`'s multi-group checkbox layout takes too much
  * vertical space to sit inline on a phone (it'd push the task list below
  * the fold before a single row is visible). Below `md`, this replaces it
  * with a "Filters" trigger button (badge showing the active count) that
- * opens `FilterBar` — reused as-is, not duplicated — inside a bottom
- * sheet. `SearchBar` deliberately stays inline on both breakpoints (not
- * collapsed into the sheet too, despite the task naming it as a
+ * opens `FilterChipsPanel` — reused as-is, not duplicated — inside a
+ * bottom sheet. `SearchBar` deliberately stays inline on both breakpoints
+ * (not collapsed into the sheet too, despite the task naming it as a
  * candidate): search is used far more often than multi-select filters,
  * and hiding it behind an extra tap would cost both personas more than
  * it saves. See DECISIONS.md.
  *
- * Filters apply live (the same `useFilters().toggleFilterValue` `FilterBar`
- * already calls on desktop) — there's no separate "Apply" step anywhere
- * in this app, so "Done" below is just a close affordance, not a commit
- * action.
+ * Filters apply live (the same `useFilters().toggleFilterValue`
+ * `FilterChipsPanel` already calls) — there's no separate "Apply" step
+ * anywhere in this app, so "Done" below is just a close affordance, not a
+ * commit action.
  */
 export function MobileFilterSheet() {
   const [isOpen, setIsOpen] = useState(false);
@@ -81,7 +81,7 @@ export function MobileFilterSheet() {
             </div>
 
             <div className="px-6 py-5">
-              <FilterBar />
+              <FilterChipsPanel />
             </div>
 
             <div className="border-border mt-2 border-t px-6 py-4">

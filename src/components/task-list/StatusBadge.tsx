@@ -43,6 +43,8 @@ const UNKNOWN_CLASSNAME =
 
 interface StatusBadgeProps {
   status: Status;
+  /** See PriorityBadge's identical prop -- same reasoning. */
+  className?: string;
 }
 
 /**
@@ -50,13 +52,13 @@ interface StatusBadgeProps {
  * violate that contract — the object lookup below must never throw, so an
  * unrecognized value falls back to a visibly distinct neutral badge instead.
  */
-export function StatusBadge({ status }: StatusBadgeProps) {
+export function StatusBadge({ status, className = "" }: StatusBadgeProps) {
   const style = STATUS_STYLES[status];
 
   if (!style) {
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${UNKNOWN_CLASSNAME}`}
+        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${UNKNOWN_CLASSNAME} ${className}`}
       >
         <QuestionMarkIcon />
         {status == null ? "Unknown" : String(status)}
@@ -64,11 +66,11 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     );
   }
 
-  const { Icon, className } = style;
+  const { Icon, className: statusClassName } = style;
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${statusClassName} ${className}`}
     >
       <Icon className="shrink-0" />
       {status}

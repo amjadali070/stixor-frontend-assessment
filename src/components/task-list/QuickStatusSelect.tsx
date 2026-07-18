@@ -1,6 +1,6 @@
-import { STATUSES, type Status, type Task } from "@/types/task";
+import type { Status, Task } from "@/types/task";
 
-import { STATUS_STYLES } from "./StatusBadge";
+import { StatusMenu } from "./StatusMenu";
 
 interface QuickStatusSelectProps {
   task: Task;
@@ -11,42 +11,36 @@ interface QuickStatusSelectProps {
    * than an ambient breakpoint class, since this component doesn't know
    * which parent it's rendered inside. */
   touchTarget?: boolean;
+  /** Forwarded to `StatusMenu` -- see its own doc comment. */
+  className?: string;
 }
 
 /**
  * Task 8.2's inline status control, extracted out of `TaskTable` once
  * `TaskCardList` (Task 9.1) needed the identical control — same
  * "second consumer, extract now" pattern as `useDialogBehavior`/
- * `formatDueDate`. Styled with the same per-status colors as `StatusBadge`
- * (`STATUS_STYLES`, exported from there) for visual consistency. Only
- * rendered for tasks with a recognized status — the desktop row and the
- * mobile card both fall back to the read-only `StatusBadge` (Task 3.8's
- * defensive fallback) instead, since "pick a new status" doesn't mean much
- * when the current one is already corrupted.
+ * `formatDueDate`. A thin wrapper around `StatusMenu` (styled with the same
+ * per-status colors as `StatusBadge`, exported from there) rather than a
+ * native `<select>` — the open option list of a native select is drawn by
+ * the browser, not by our CSS, so it can't be themed consistently (or at
+ * all in dark mode). Only rendered for tasks with a recognized status — the
+ * desktop row and the mobile card both fall back to the read-only
+ * `StatusBadge` (Task 3.8's defensive fallback) instead, since "pick a new
+ * status" doesn't mean much when the current one is already corrupted.
  */
 export function QuickStatusSelect({
   task,
   onStatusChange,
   touchTarget = false,
+  className,
 }: QuickStatusSelectProps) {
-  const { className } = STATUS_STYLES[task.status];
-
   return (
-    <select
+    <StatusMenu
       value={task.status}
-      onChange={(event) =>
-        onStatusChange(task.id, event.target.value as Status)
-      }
-      onClick={(event) => event.stopPropagation()}
-      onKeyDown={(event) => event.stopPropagation()}
-      aria-label={`Change status for ${task.title}`}
-      className={`focus-visible:ring-ring cursor-pointer rounded-full border px-2 text-xs font-medium outline-none focus-visible:ring-2 ${touchTarget ? "min-h-[44px]" : "py-0.5"} ${className}`}
-    >
-      {STATUSES.map((status) => (
-        <option key={status} value={status}>
-          {status}
-        </option>
-      ))}
-    </select>
+      onChange={(status) => onStatusChange(task.id, status)}
+      ariaLabel={`Change status for ${task.title}`}
+      touchTarget={touchTarget}
+      className={className}
+    />
   );
 }
