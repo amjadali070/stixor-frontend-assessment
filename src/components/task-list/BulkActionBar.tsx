@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { SpinnerIcon } from "@/components/ui/icons";
+import { SpinnerIcon, TrashIcon } from "@/components/ui/icons";
 import type { Status } from "@/types/task";
 
 import { StatusMenu } from "./StatusMenu";
@@ -11,6 +11,7 @@ interface BulkActionBarProps {
   selectedCount: number;
   isApplying: boolean;
   onApply: (status: Status) => void;
+  onDelete: () => void;
   onClear: () => void;
 }
 
@@ -27,6 +28,7 @@ export function BulkActionBar({
   selectedCount,
   isApplying,
   onApply,
+  onDelete,
   onClear,
 }: BulkActionBarProps) {
   const [pendingStatus, setPendingStatus] = useState<Status | "">("");
@@ -65,11 +67,23 @@ export function BulkActionBar({
         {isApplying ? "Applying…" : "Apply"}
       </button>
 
+      <span className="bg-border h-5 w-px" aria-hidden="true" />
+
+      <button
+        type="button"
+        onClick={onDelete}
+        disabled={isApplying}
+        className="border-destructive/40 text-destructive hover:bg-destructive/10 focus-visible:ring-ring inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <TrashIcon />
+        Delete
+      </button>
+
       <button
         type="button"
         onClick={onClear}
         disabled={isApplying}
-        className="text-muted-foreground hover:text-foreground focus-visible:ring-ring cursor-pointer text-sm font-medium underline transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        className="text-muted-foreground hover:text-foreground focus-visible:ring-ring ml-auto cursor-pointer text-sm font-medium underline transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       >
         Clear selection
       </button>

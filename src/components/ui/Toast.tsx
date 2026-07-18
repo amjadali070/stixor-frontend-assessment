@@ -15,11 +15,16 @@ function ToastItem({ toast }: { toast: Toast }) {
   useEffect(() => {
     // A toast with a Retry action stays until the user acts or dismisses
     // it manually — auto-dismissing a still-actionable error would be
-    // unkind (they might not have read it in time).
-    if (toast.action) return;
-    const timeout = setTimeout(() => removeToast(toast.id), AUTO_DISMISS_MS);
+    // unkind (they might not have read it in time). `autoDismissMs` is the
+    // deliberate exception: an "Undo" window is *meant* to close on its
+    // own, since the window closing is what makes the action final.
+    if (toast.action && toast.autoDismissMs === undefined) return;
+    const timeout = setTimeout(
+      () => removeToast(toast.id),
+      toast.autoDismissMs ?? AUTO_DISMISS_MS,
+    );
     return () => clearTimeout(timeout);
-  }, [toast.id, toast.action, removeToast]);
+  }, [toast.id, toast.action, toast.autoDismissMs, removeToast]);
 
   return (
     <div

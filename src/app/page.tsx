@@ -16,11 +16,10 @@ import { TaskTableSkeleton } from "@/components/task-list/TaskTableSkeleton";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { SpinnerIcon } from "@/components/ui/icons";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { useDeleteWithUndo } from "@/hooks/useDeleteWithUndo";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useTasks } from "@/hooks/useTasks";
-import { ApiError, deleteTask } from "@/lib/api/tasks";
 import { useTaskStore } from "@/lib/store/useTaskStore";
-import { useToastStore } from "@/lib/store/useToastStore";
 
 // Task 11.4: neither modal is needed for the initial dashboard render (both
 // are gated behind `isCreateModalOpen`/`editingTaskId`, which start
@@ -63,9 +62,7 @@ export default function DashboardPage() {
   const { tasks, isLoading, error, refetch } = useTasks();
   const selectedTaskId = useTaskStore((s) => s.selectedTaskId);
   const setSelectedTaskId = useTaskStore((s) => s.setSelectedTaskId);
-  const removeTask = useTaskStore((s) => s.removeTask);
-  const restoreTask = useTaskStore((s) => s.restoreTask);
-  const addToast = useToastStore((s) => s.addToast);
+  const deleteTasksWithUndo = useDeleteWithUndo();
   // Looked up from the raw (unfiltered) task list -- an open panel should
   // stay showing its task even if a filter change would hide that row.
   const selectedTask = tasks.find((t) => t.id === selectedTaskId) ?? null;
@@ -81,35 +78,11 @@ export default function DashboardPage() {
 
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const deletingTask = tasks.find((t) => t.id === deletingTaskId) ?? null;
-  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleConfirmDelete = () => {
-    if (!deletingTask) return;
-    const taskId = deletingTask.id;
-    const removed = removeTask(taskId);
-    if (!removed) return;
-
-    setIsDeleting(true);
-    deleteTask(taskId)
-      .then(() => {
-        addToast({
-          message: `"${removed.task.title}" was deleted.`,
-          variant: "success",
-        });
-        setDeletingTaskId(null);
-      })
-      .catch((err: unknown) => {
-        restoreTask(removed.task, removed.index);
-        const message =
-          err instanceof ApiError ? err.message : "Failed to delete task.";
-        addToast({
-          message,
-          variant: "error",
-          action: { label: "Retry", onClick: handleConfirmDelete },
-        });
-      })
-      .finally(() => setIsDeleting(false));
-  };
+  // TaskTable owns the bulk-delete confirm dialog itself (selection state
+  // lives there), but this still needs to know it's open -- otherwise
+  // pressing "n" while it's up would stack the Create Task modal on top.
+  const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false);
 
   const hasStaleData = error !== null && tasks.length > 0;
 
@@ -118,7 +91,11 @@ export default function DashboardPage() {
   // dialogs" rule, and focusing search behind an open modal wouldn't do
   // anything useful anyway.
   const isAnyDialogOpen =
-    !!selectedTask || isCreateModalOpen || !!editingTask || !!deletingTask;
+    !!selectedTask ||
+    isCreateModalOpen ||
+    !!editingTask ||
+    !!deletingTask ||
+    isBulkDeleteConfirmOpen;
 
   useKeyboardShortcuts({
     onFocusSearch: () => document.getElementById("task-search")?.focus(),
@@ -202,7 +179,10 @@ export default function DashboardPage() {
         <TaskTableSkeleton />
       ) : error && !hasStaleData ? null : (
         <Suspense fallback={<TaskTableSkeleton />}>
-          <TaskTable onCreateTask={handleCreateTask} />
+          <TaskTable
+            onCreateTask={handleCreateTask}
+            onBulkDeleteConfirmChange={setIsBulkDeleteConfirmOpen}
+          />
         </Suspense>
       )}
 
@@ -237,10 +217,12 @@ export default function DashboardPage() {
       {deletingTask && (
         <ConfirmDialog
           title="Delete this task?"
-          message="This can't be undone."
+          message="You can undo this for a few seconds after."
           confirmLabel="Delete"
-          isConfirming={isDeleting}
-          onConfirm={handleConfirmDelete}
+          onConfirm={() => {
+            deleteTasksWithUndo([deletingTask.id]);
+            setDeletingTaskId(null);
+          }}
           onCancel={() => {
             // Reopens the detail view rather than just closing outright --
             // a delete cancel means "I still want to look at this task,"

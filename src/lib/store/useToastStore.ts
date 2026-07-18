@@ -10,6 +10,11 @@ export interface Toast {
   message: string;
   variant: "success" | "error";
   action?: ToastAction;
+  /** Auto-dismiss even though `action` is set -- for a genuinely
+   * time-boxed choice like "Undo" (see useDeleteWithUndo), where the
+   * window closing *is* the point, unlike "Retry" on a real unresolved
+   * error, which should stay until the user acts or dismisses it. */
+  autoDismissMs?: number;
 }
 
 interface ToastStoreState {

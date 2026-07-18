@@ -11,6 +11,8 @@ import {
 } from "react";
 import { List, useListRef, type RowComponentProps } from "react-window";
 
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useDeleteWithUndo } from "@/hooks/useDeleteWithUndo";
 import { useNow } from "@/hooks/useNow";
 import { ApiError, updateTask } from "@/lib/api/tasks";
 import { EMPTY_FILTERS, useTaskStore } from "@/lib/store/useTaskStore";
@@ -281,9 +283,18 @@ function RowRenderer({
 
 interface TaskTableProps {
   onCreateTask: () => void;
+  /** The bulk-delete confirm dialog is owned here (selection state lives
+   * here too), but page.tsx's keyboard-shortcut suppression needs to know
+   * about *every* open dialog, not just the ones it renders itself --
+   * without this, pressing "n" while this confirm is open would stack the
+   * Create Task modal right on top of it. */
+  onBulkDeleteConfirmChange?: (open: boolean) => void;
 }
 
-export function TaskTable({ onCreateTask }: TaskTableProps) {
+export function TaskTable({
+  onCreateTask,
+  onBulkDeleteConfirmChange,
+}: TaskTableProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -301,6 +312,7 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
   const clearFiltersInStore = useTaskStore((s) => s.clearFilters);
   const setSearchQueryInStore = useTaskStore((s) => s.setSearchQuery);
   const addToast = useToastStore((s) => s.addToast);
+  const deleteTasksWithUndo = useDeleteWithUndo();
 
   // Ticks once a minute, not once a render (Task 11.2) -- see useNow.ts.
   const now = useNow();
@@ -321,6 +333,11 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
   // bar works regardless of which layout is currently visible.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkApplying, setIsBulkApplying] = useState(false);
+  const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    onBulkDeleteConfirmChange?.(isBulkDeleteConfirmOpen);
+  }, [isBulkDeleteConfirmOpen, onBulkDeleteConfirmChange]);
 
   const handleToggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -412,6 +429,16 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
         },
       });
     }
+  }
+
+  // Bulk delete goes through the same undo-window mechanism as the
+  // single-task delete (useDeleteWithUndo) rather than a bespoke bulk
+  // path -- "delete N tasks" doesn't need special-casing just because N
+  // came from a selection instead of one row's menu.
+  function handleConfirmBulkDelete() {
+    setIsBulkDeleteConfirmOpen(false);
+    deleteTasksWithUndo([...selectedIds]);
+    setSelectedIds(new Set());
   }
 
   // Task 8.2 + 8.3: optimistic status change with rollback on failure,
@@ -588,8 +615,19 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
         onApply={(status) =>
           void applyBulkStatusChange([...selectedIds], status)
         }
+        onDelete={() => setIsBulkDeleteConfirmOpen(true)}
         onClear={handleClearSelection}
       />
+
+      {isBulkDeleteConfirmOpen && (
+        <ConfirmDialog
+          title={`Delete ${selectedIds.size} task${selectedIds.size === 1 ? "" : "s"}?`}
+          message="You can undo this for a few seconds after."
+          confirmLabel="Delete"
+          onConfirm={handleConfirmBulkDelete}
+          onCancel={() => setIsBulkDeleteConfirmOpen(false)}
+        />
+      )}
 
       {/* Task 9.1: the table doesn't work under ~768px -- TaskCardList
           replaces it below `md`, fed the exact same sortedTasks/handlers

@@ -7,6 +7,7 @@ Here's what's in this doc:
 - [Setup Instructions](#setup-instructions)
 - [Assumptions](#assumptions)
 - [Architecture](#architecture)
+- [Product Thinking](#product-thinking)
 - [UX Decisions](#ux-decisions)
 - [Performance Considerations](#performance-considerations)
 - [Accessibility Considerations](#accessibility-considerations)
@@ -103,18 +104,34 @@ src/
 
 ---
 
+## Product Thinking
+
+The brief gives two personas and asks for both without leaning on visual polish alone: a new CSM who needs clarity and a low-mistake path, and an experienced one who wants speed and minimal clicks. Most of the decisions below came out of asking, for a given screen, "does this help one without getting in the way of the other." The specific interaction patterns that came out of that (inline status changes, the shortcuts popover, the mobile layout) are in UX Decisions next; this section is more about the states and edge cases underneath them.
+
+**All six states, not just the happy path:**
+
+- **Loading** is a skeleton shaped like the real table (same row height, same column widths), not a generic spinner, so nothing visually jumps once data actually arrives.
+- **Empty** is two different states, not one. Zero tasks ever existing (a genuinely fresh workspace) points you at Create Task. Zero tasks matching an active search or filter offers to clear the filter instead. Those are different problems with different fixes, and telling someone "no tasks" when they've actually just over-filtered isn't helpful.
+- **Error** is a banner with a retry button, and it distinguishes two situations that look similar but aren't. If the very first load fails, there's nothing to fall back on, so the table area stays empty behind the banner. If a _later_ refresh fails but the app already has good data loaded, the banner says so explicitly ("Showing the last loaded data") and the existing list stays visible and usable underneath it. Losing a working view because one background refresh had bad luck felt like exactly the kind of thing that should degrade gracefully instead of just wiping the screen.
+- **Success** is a toast worded specifically for what happened (`"Renewal call" status changed to Completed`), not a generic "Saved."
+- **Confirmation** is required for delete specifically, and nothing else, because nothing else here is irreversible.
+- **Onboarding** is a dismissible hint for a first-time user, gone for good once dismissed, never a modal or a forced tour.
+
+**Handling mistakes, not just preventing them:** validation messages name the actual problem ("Due date must be today or later," not "Invalid input"), and two real bugs only turned up from live testing, not from reading the spec: editing an already-overdue task used to fail validation on a date field the user never touched, and the same thing happened editing an already-unassigned task (both are in Assumptions above, with the fix). The thing worth naming here is that these were bugs in _my_ implementation surfacing as if they were the user's fault, which is a worse failure mode than an honest validation error, since the user has no idea what they supposedly did wrong.
+
+**Requirements I added that the brief didn't ask for:** a required Customer field on Create Task, since every task in this domain already belongs to a customer and allowing one with none felt like a spec gap rather than a real option. And a confirmation step before delete, the one destructive/irreversible action in the app, added once Update Task existed and made an unconfirmed delete sit right next to it. Both felt like "the spec didn't say this, but shipping without it would be wrong," not scope creep for its own sake.
+
+---
+
 ## UX Decisions
 
-The brief gives two personas: a new CSM who needs clarity and a low-mistake path, and an experienced one who wants speed and minimal clicks. Honestly, most of the interesting UX calls in this project came down to "does this help one without getting in the way of the other."
-
-A few concrete examples:
+A few concrete interaction patterns that came out of the persona split above:
 
 - **Quick status change is a plain inline `<select>` in the row itself**, not "open the task, change status, save, close." That's entirely for the experienced-CSM case. Updating status is probably the single most repeated action in this tool, and a one-click (well, one-select) affordance instead of a multi-step flow adds up over hundreds of tasks a week.
-- **A dismissible first-visit hint** points a brand-new user at search, filters, and Create Task, then gets out of the way permanently once dismissed (stored in localStorage). It doesn't show again for a returning/experienced user, and it's not a modal or a forced tour, just a banner you can ignore.
+- **A dismissible first-visit hint** points a brand-new user at search, filters, and Create Task, then gets out of the way permanently once dismissed (stored in localStorage). It doesn't show again for a returning/experienced user.
 - **Keyboard shortcuts** (`/` for search, `n` for new task, `Esc` for closing anything) are discoverable through a small "?" button in the corner, not baked into the primary UI. An experienced user who wants speed can find it; a new user never has to know it exists.
 - **Every mutation (create, edit, delete, status change, bulk status change) is optimistic.** The UI updates instantly, the request goes out in the background, and if it fails, the change rolls back with a toast and a retry button. This was a deliberate bet that "feels instant most of the time, with a clean recovery path for the unlucky case" beats "always wait for the server, even though it usually would've been fine."
-- **Delete needed a confirmation step and isn't in the original spec.** I added it because a destructive, irreversible action with zero confirmation felt like an obvious real-world gap once Update Task was in place, not scope creep for its own sake.
-- **Never stack two dialogs.** Editing from the detail panel closes the detail panel first; canceling a delete confirmation reopens the detail view rather than just closing outright, because "cancel" on a delete usually means "I still want to look at this," not "get me out of here." Small thing, but it came up more than once while building this, and settling on one consistent rule saved me from re-litigating it every time.
+- **Never stack two dialogs.** Editing from the detail panel closes the detail panel first; canceling the delete confirmation reopens the detail view rather than just closing outright, because "cancel" on a delete usually means "I still want to look at this," not "get me out of here." Small thing, but it came up more than once while building this, and settling on one consistent rule saved me from re-litigating it every time.
 - **Mobile isn't a shrunk-down desktop table.** Below `768px` the table becomes a card list, the filter bar collapses into a bottom sheet behind a "Filters" button (search stays inline, since it's used far more often than multi-select filters and hiding it behind a tap felt like it'd cost more than it saved), and modals go full-screen instead of a cramped centered dialog.
 
 ---
@@ -153,7 +170,7 @@ On the "what's actually in place" side: every dialog uses real `role="dialog"` /
 
 ## Production Readiness Review
 
-If this were shipping tomorrow, here's what I'd flag before calling it done:
+If this were shipping tomorrow, here's what I would flag before calling it done:
 
 - **No authentication or authorization.** There's a single implicit user and no concept of "whose task is this to edit." A real deployment needs an identity layer and almost certainly some notion of permissions (can a CSM edit someone else's task? delete it?).
 - **No real backend.** Everything's a mock API over localStorage. That's fine for a take-home, obviously not fine for a team of CSMs who need their data to persist somewhere durable and be visible to each other.
@@ -178,11 +195,17 @@ I used **Claude Code** for essentially the entire build, working phase by phase 
 
 A few actual prompts from the build, close to verbatim:
 
-> "perfect, now let's go with phase 7, all tasks in the phase should be completed in one commit"
+> "phase 7 — build CreateTaskModal per task 7.1-7.6 in TASKS.md. reuse the field components, don't create a separate create-only set since edit needs the same fields later. customer is required per DECISIONS.md (we decided every task needs one even though the brief's minimum-fields list doesn't mention it). wire it through lib/api/tasks.ts, not directly against seed data. optimistic insert with a temp id, replace on success, roll back and keep the form values if it fails — don't clear the form on a failed submit, that's the one thing that'd actually make me angry as a user"
 
-> "toast needs to be showing at the top center"
+> "toast's in the wrong spot, move it to top center. also go check it's actually got aria-live on the container, not just visually appearing — I want the quick status change (8.2) to announce to a screen reader too since every other mutation does and that one's silent right now"
 
-> "now go for phase 8, task 8.1, 8.2 and 8.3 and 8.4 and 8.5, the complete phase should be completed"
+> "phase 8, tasks 8.1 through 8.5. 8.2 - quick status change goes inline in the row as a plain select, not a dropdown-in-a-modal, this is the one thing an experienced CSM does hundreds of times a day so it can't cost more than one interaction. 8.4 - delete needs a confirm dialog since it's the only destructive action in the app, but don't add confirms to anything else, we're not confirming status changes. 8.5 - build the concurrency demo as a button on the edit form that simulates someone else changing the task while it's open, and document whatever behavior you land on in DECISIONS.md under Assumptions"
+
+> "before you say this is done, actually launch it and click through create, then edit, then delete, then undo a failed one by turning on NEXT_PUBLIC_SIMULATE_FAILURES. don't just tell me lint and the build passed, I want to know you actually saw it work"
+
+> "bug — open any of the overdue seed tasks and try to save an edit without touching the due date field, it just silently fails. I think the due-date validation in the shared zod schema is checking the existing date against 'must be today or later' even when the user never touched it. it should only enforce that rule on a new value, the task's original due date should be grandfathered in"
+
+> "the primary buttons in dark mode look a little off to me, can you actually pull the computed contrast ratio against the button text instead of just eyeballing it against the badge colors we already checked. if it's under 4.5:1 fix the token, don't just nudge the hex until it looks fine"
 
 That last one is a good example of the workflow — I'd name the phase, sometimes the specific tasks within it if I wanted to scope it tighter, and let it run, review the result, then move on.
 
