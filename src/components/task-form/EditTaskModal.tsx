@@ -229,7 +229,7 @@ export function EditTaskModal({ task, onClose }: EditTaskModalProps) {
             <button
               type="button"
               onClick={() => void retryRosters()}
-              className="cursor-pointer font-semibold whitespace-nowrap underline"
+              className="cursor-pointer rounded-sm font-semibold whitespace-nowrap underline focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none"
             >
               Retry
             </button>

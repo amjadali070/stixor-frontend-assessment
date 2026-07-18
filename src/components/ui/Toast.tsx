@@ -44,7 +44,7 @@ function ToastItem({ toast }: { toast: Toast }) {
             toast.action?.onClick();
             removeToast(toast.id);
           }}
-          className="shrink-0 cursor-pointer rounded-md border border-current px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+          className="shrink-0 cursor-pointer rounded-md border border-current px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-colors hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-current focus-visible:outline-none dark:hover:bg-white/10"
         >
           {toast.action.label}
         </button>
@@ -53,7 +53,7 @@ function ToastItem({ toast }: { toast: Toast }) {
         type="button"
         onClick={() => removeToast(toast.id)}
         aria-label="Dismiss notification"
-        className="shrink-0 cursor-pointer rounded p-0.5 opacity-70 hover:opacity-100"
+        className="shrink-0 cursor-pointer rounded p-0.5 opacity-70 hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-current focus-visible:outline-none"
       >
         <XIcon />
       </button>

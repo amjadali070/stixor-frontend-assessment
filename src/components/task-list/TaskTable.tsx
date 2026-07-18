@@ -203,7 +203,17 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
     if (!previous) return;
 
     updateTask(taskId, { status })
-      .then((updated) => replaceTask(taskId, updated))
+      .then((updated) => {
+        replaceTask(taskId, updated);
+        // Task 10.4: every other mutation (create/edit/delete) confirms
+        // success with a toast -- a silent quick-status-change was the one
+        // exception, inconsistent with the rest of the app and easy to
+        // miss for a screen reader user who isn't looking at the table.
+        addToast({
+          message: `"${updated.title}" status changed to ${status}.`,
+          variant: "success",
+        });
+      })
       .catch((err: unknown) => {
         replaceTask(taskId, previous);
         const message =
