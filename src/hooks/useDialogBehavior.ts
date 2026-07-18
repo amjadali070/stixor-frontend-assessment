@@ -2,8 +2,16 @@
 
 import { useEffect, useRef, type KeyboardEvent, type RefObject } from "react";
 
+// :not(:disabled) matters here, not just cosmetic -- CreateTaskModal and
+// EditTaskModal both disable fields while their roster loads (and disable
+// Save while it's submitting), and a disabled element is skipped by the
+// browser's own native Tab order but would still show up in a plain
+// querySelectorAll. Without this exclusion, `last` below could end up
+// pointing at a disabled, unreachable element, so the forward-wrap check
+// (`activeElement === last`) never fires and Tab escapes the dialog
+// entirely once the true last enabled element is reached.
 const FOCUSABLE_SELECTOR =
-  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
 
 /**
  * Shared modal/dialog behavior — extracted from TaskDetailPanel (Task 6.3/

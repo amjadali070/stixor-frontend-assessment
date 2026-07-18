@@ -3,7 +3,9 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 
+import { ApiError, updateTask } from "@/lib/api/tasks";
 import { EMPTY_FILTERS, useTaskStore } from "@/lib/store/useTaskStore";
+import { useToastStore } from "@/lib/store/useToastStore";
 import { applyFilters } from "@/lib/utils/applyFilters";
 import { formatDueDate } from "@/lib/utils/formatDueDate";
 import { writePersistedFilters } from "@/lib/utils/persistedFilters";
@@ -13,14 +15,14 @@ import {
   applyFiltersToParams,
   applySearchToParams,
 } from "@/lib/utils/urlFilters";
-import type { Task } from "@/types/task";
+import { STATUSES, type Status, type Task } from "@/types/task";
 
 import { HighlightedText } from "./HighlightedText";
 import { WarningTriangleIcon } from "./icons";
 import { NoMatchesEmptyState } from "./NoMatchesEmptyState";
 import { NoTasksEmptyState } from "./NoTasksEmptyState";
 import { PriorityBadge } from "./PriorityBadge";
-import { StatusBadge } from "./StatusBadge";
+import { StatusBadge, STATUS_STYLES } from "./StatusBadge";
 
 // Explicit widths (table-layout: fixed) so `truncate` on the title/customer
 // cells actually has a bound to clip against instead of the table growing
@@ -34,6 +36,42 @@ const COLUMNS = [
   { label: "Assignee", width: "w-[14%]" },
 ] as const;
 
+interface QuickStatusSelectProps {
+  task: Task;
+  onStatusChange: (taskId: string, status: Status) => void;
+}
+
+/**
+ * Task 8.2: inline status control, no detail view needed. Styled with the
+ * same per-status colors as StatusBadge (STATUS_STYLES, exported from
+ * there) for visual consistency. Only rendered for tasks with a
+ * recognized status — Task 3.8's defensive StatusBadge fallback covers
+ * the malformed-data case instead, since "pick a new status" doesn't
+ * mean much when the current one is already corrupted.
+ */
+function QuickStatusSelect({ task, onStatusChange }: QuickStatusSelectProps) {
+  const { className } = STATUS_STYLES[task.status];
+
+  return (
+    <select
+      value={task.status}
+      onChange={(event) =>
+        onStatusChange(task.id, event.target.value as Status)
+      }
+      onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => event.stopPropagation()}
+      aria-label={`Change status for ${task.title}`}
+      className={`focus-visible:ring-ring cursor-pointer rounded-full border px-2 py-0.5 text-xs font-medium outline-none focus-visible:ring-2 ${className}`}
+    >
+      {STATUSES.map((status) => (
+        <option key={status} value={status}>
+          {status}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 interface TaskRowProps {
   task: Task;
   onOpen: (id: string) => void;
@@ -41,6 +79,7 @@ interface TaskRowProps {
   searchQuery: string;
   isRecentlyCreated: boolean;
   onHighlightExpire: () => void;
+  onStatusChange: (taskId: string, status: Status) => void;
 }
 
 function TaskRow({
@@ -50,10 +89,14 @@ function TaskRow({
   searchQuery,
   isRecentlyCreated,
   onHighlightExpire,
+  onStatusChange,
 }: TaskRowProps) {
   const open = () => onOpen(task.id);
   const urgencyReason = getUrgencyReason(task, now);
   const rowRef = useRef<HTMLTableRowElement>(null);
+  const hasRecognizedStatus = (STATUSES as readonly string[]).includes(
+    task.status,
+  );
 
   // Task 7.6: scroll the newly created row into view and briefly highlight
   // it. The highlight clears itself (fading via the row's existing
@@ -121,7 +164,11 @@ function TaskRow({
         <PriorityBadge priority={task.priority} />
       </td>
       <td className="px-4 py-3">
-        <StatusBadge status={task.status} />
+        {hasRecognizedStatus ? (
+          <QuickStatusSelect task={task} onStatusChange={onStatusChange} />
+        ) : (
+          <StatusBadge status={task.status} />
+        )}
       </td>
       <td className="px-4 py-3 font-mono whitespace-nowrap tabular-nums">
         {formatDueDate(task.dueDate)}
@@ -152,8 +199,11 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
   const setRecentlyCreatedTaskId = useTaskStore(
     (s) => s.setRecentlyCreatedTaskId,
   );
+  const patchTask = useTaskStore((s) => s.patchTask);
+  const replaceTask = useTaskStore((s) => s.replaceTask);
   const clearFiltersInStore = useTaskStore((s) => s.clearFilters);
   const setSearchQueryInStore = useTaskStore((s) => s.setSearchQuery);
+  const addToast = useToastStore((s) => s.addToast);
 
   // One snapshot per render, shared by the sort and every row's urgency
   // marker, so they always agree on "now" instead of drifting by
@@ -173,6 +223,35 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
     () => setRecentlyCreatedTaskId(null),
     [setRecentlyCreatedTaskId],
   );
+
+  // Task 8.2 + 8.3: optimistic status change with rollback on failure,
+  // same pattern as Create/Edit (patch immediately, call the real API,
+  // reconcile or roll back once it resolves). A plain function
+  // declaration, not useCallback -- the retry action below calls this
+  // function by name recursively, which a `const x = useCallback(() =>
+  // ... x() ...)` self-reference trips an eslint-plugin-react-hooks TDZ
+  // check on; a hoisted declaration (same pattern as CreateTaskModal/
+  // EditTaskModal's attemptCreate/attemptUpdate) doesn't have that issue.
+  function handleStatusChange(taskId: string, status: Status) {
+    const previous = patchTask(taskId, { status });
+    if (!previous) return;
+
+    updateTask(taskId, { status })
+      .then((updated) => replaceTask(taskId, updated))
+      .catch((err: unknown) => {
+        replaceTask(taskId, previous);
+        const message =
+          err instanceof ApiError ? err.message : "Failed to update status.";
+        addToast({
+          message,
+          variant: "error",
+          action: {
+            label: "Retry",
+            onClick: () => handleStatusChange(taskId, status),
+          },
+        });
+      });
+  }
 
   const activeFilterCount =
     filters.priority.length + filters.status.length + filters.assignee.length;
@@ -252,6 +331,7 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
               searchQuery={searchQuery}
               isRecentlyCreated={task.id === recentlyCreatedTaskId}
               onHighlightExpire={handleHighlightExpire}
+              onStatusChange={handleStatusChange}
             />
           ))}
         </tbody>

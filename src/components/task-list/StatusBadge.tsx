@@ -16,7 +16,7 @@ import {
  * PriorityBadge palette (red/amber/slate) so priority and status read as
  * distinct dimensions at a glance.
  */
-const STATUS_STYLES: Record<
+export const STATUS_STYLES: Record<
   Status,
   { Icon: ComponentType<{ className?: string }>; className: string }
 > = {

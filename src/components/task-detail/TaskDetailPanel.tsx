@@ -2,7 +2,7 @@
 
 import { useRef, type ReactNode } from "react";
 
-import { XIcon } from "@/components/ui/icons";
+import { EditIcon, TrashIcon, XIcon } from "@/components/ui/icons";
 import { useDialogBehavior } from "@/hooks/useDialogBehavior";
 import { PriorityBadge } from "@/components/task-list/PriorityBadge";
 import { StatusBadge } from "@/components/task-list/StatusBadge";
@@ -12,6 +12,8 @@ import type { Task } from "@/types/task";
 interface TaskDetailPanelProps {
   task: Task;
   onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
 interface FieldProps {
@@ -41,8 +43,18 @@ function Field({ label, children }: FieldProps) {
  * via the shared `useDialogBehavior` hook. `key={task.id}` in page.tsx
  * ensures a fresh mount per task, so this component never has to worry
  * about "the task changed without a real close."
+ *
+ * `onEdit`/`onDelete` (Tasks 8.1/8.4) both close this panel first before
+ * opening their own dialog in page.tsx — never stack two
+ * useDialogBehavior-driven dialogs simultaneously, or a single Escape
+ * press would close both at once instead of just the top one.
  */
-export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
+export function TaskDetailPanel({
+  task,
+  onClose,
+  onEdit,
+  onDelete,
+}: TaskDetailPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const { trapTab } = useDialogBehavior(panelRef, onClose, closeButtonRef);
@@ -70,15 +82,33 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
           >
             {task.title}
           </h2>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            onClick={onClose}
-            aria-label="Close task details"
-            className="text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-ring shrink-0 cursor-pointer rounded-full p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
-          >
-            <XIcon className="h-4 w-4" />
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={onEdit}
+              aria-label="Edit task"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-ring cursor-pointer rounded-full p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            >
+              <EditIcon />
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              aria-label="Delete task"
+              className="text-muted-foreground hover:text-destructive hover:bg-muted focus-visible:ring-ring cursor-pointer rounded-full p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            >
+              <TrashIcon />
+            </button>
+            <button
+              ref={closeButtonRef}
+              type="button"
+              onClick={onClose}
+              aria-label="Close task details"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-ring cursor-pointer rounded-full p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            >
+              <XIcon className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <dl className="flex flex-1 flex-col gap-5 px-6 py-5">

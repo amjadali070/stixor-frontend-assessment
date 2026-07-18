@@ -1,20 +1,16 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { useForm } from "react-hook-form";
 
 import { SpinnerIcon, XIcon } from "@/components/ui/icons";
 import { useDialogBehavior } from "@/hooks/useDialogBehavior";
-import {
-  ApiError,
-  createTask,
-  getAssignees,
-  getCustomers,
-} from "@/lib/api/tasks";
+import { useRosters } from "@/hooks/useRosters";
+import { ApiError, createTask } from "@/lib/api/tasks";
 import { useTaskStore } from "@/lib/store/useTaskStore";
 import { useToastStore } from "@/lib/store/useToastStore";
-import type { Assignee, Customer, Task } from "@/types/task";
+import type { Task } from "@/types/task";
 
 import {
   AssigneeField,
@@ -53,10 +49,13 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const { trapTab } = useDialogBehavior(dialogRef, onClose);
 
-  const [assignees, setAssignees] = useState<Assignee[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [isLoadingRosters, setIsLoadingRosters] = useState(true);
-  const [rosterError, setRosterError] = useState<string | null>(null);
+  const {
+    assignees,
+    customers,
+    isLoading: isLoadingRosters,
+    error: rosterError,
+    retry: retryRosters,
+  } = useRosters();
 
   const addTask = useTaskStore((s) => s.addTask);
   const replaceTask = useTaskStore((s) => s.replaceTask);
@@ -75,35 +74,6 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
     defaultValues: TASK_FORM_DEFAULT_VALUES,
     mode: "onBlur",
   });
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadRosters() {
-      setIsLoadingRosters(true);
-      setRosterError(null);
-      try {
-        const [assigneeList, customerList] = await Promise.all([
-          getAssignees(),
-          getCustomers(),
-        ]);
-        if (cancelled) return;
-        setAssignees(assigneeList);
-        setCustomers(customerList);
-      } catch {
-        if (!cancelled) {
-          setRosterError("Couldn't load assignees and customers.");
-        }
-      } finally {
-        if (!cancelled) setIsLoadingRosters(false);
-      }
-    }
-
-    void loadRosters();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   async function attemptCreate(values: TaskFormValues) {
     const assignee = assignees.find((a) => a.id === values.assigneeId);
@@ -201,19 +171,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
             <span>{rosterError}</span>
             <button
               type="button"
-              onClick={() => {
-                setIsLoadingRosters(true);
-                setRosterError(null);
-                Promise.all([getAssignees(), getCustomers()])
-                  .then(([a, c]) => {
-                    setAssignees(a);
-                    setCustomers(c);
-                  })
-                  .catch(() =>
-                    setRosterError("Couldn't load assignees and customers."),
-                  )
-                  .finally(() => setIsLoadingRosters(false));
-              }}
+              onClick={() => void retryRosters()}
               className="cursor-pointer font-semibold whitespace-nowrap underline"
             >
               Retry
