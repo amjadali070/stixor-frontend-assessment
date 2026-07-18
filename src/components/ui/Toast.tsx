@@ -32,8 +32,8 @@ function ToastItem({ toast }: { toast: Toast }) {
       aria-live={isError ? "assertive" : "polite"}
       className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-sm shadow-lg ${
         isError
-          ? "border-red-200 bg-red-100 text-red-800 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-300"
-          : "border-green-200 bg-green-100 text-green-800 dark:border-green-500/30 dark:bg-green-500/15 dark:text-green-300"
+          ? "border-red-200 bg-red-100 text-red-800 dark:border-red-500/30 dark:bg-red-950 md:dark:bg-red-500/15 dark:text-red-300"
+          : "border-green-200 bg-green-100 text-green-800 dark:border-green-500/30 dark:bg-green-950 md:dark:bg-green-500/15 dark:text-green-300"
       }`}
     >
       {isError ? (
