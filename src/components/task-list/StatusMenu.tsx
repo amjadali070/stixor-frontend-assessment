@@ -176,7 +176,7 @@ export function StatusMenu({
           }
         }}
         onKeyDown={(event) => event.stopPropagation()}
-        className={`focus-visible:ring-ring inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full border px-2.5 text-xs font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${touchTarget ? "min-h-[44px]" : "py-1"} ${triggerClassName} ${className}`}
+        className={`relative focus-visible:ring-ring inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full border px-2.5 text-xs font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 py-1 ${touchTarget ? "before:absolute before:-inset-y-2.5 before:inset-x-0" : ""} ${triggerClassName} ${className}`}
       >
         {TriggerIcon && <TriggerIcon className="shrink-0" />}
         {isPlaceholder ? placeholder : value}
