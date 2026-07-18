@@ -38,9 +38,9 @@ function newTempId(): string {
 }
 
 /**
- * Create Task form (Tasks 7.1-7.6). Centered dialog, not a full-screen
- * mobile treatment yet -- that's explicitly Task 9.5's job, which names
- * this component. Customer is included as a required field even though
+ * Create Task form (Tasks 7.1-7.6). Full-screen below `md` (Task 9.5),
+ * a centered dialog at `md` and up. Customer is included as a required
+ * field even though
  * the spec's minimum-fields list for Create Task omits it: every seed
  * task has one, it's central to what a CS task even is, and the Task
  * type requires it non-optionally -- see DECISIONS.md.
@@ -134,7 +134,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
   const onSubmit = handleSubmit(attemptCreate);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center md:p-4">
       <div
         className="absolute inset-0 bg-black/40"
         aria-hidden="true"
@@ -147,7 +147,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
         aria-modal="true"
         aria-labelledby="create-task-heading"
         onKeyDown={trapTab}
-        className="bg-surface relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-y-auto rounded-lg shadow-xl"
+        className="bg-surface relative flex h-full w-full flex-col overflow-y-auto md:h-auto md:max-h-[90vh] md:max-w-lg md:rounded-lg md:shadow-xl"
       >
         <div className="border-border flex items-center justify-between gap-4 border-b px-6 py-4">
           <h2 id="create-task-heading" className="text-lg font-semibold">

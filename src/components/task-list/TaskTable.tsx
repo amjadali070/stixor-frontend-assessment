@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { ApiError, updateTask } from "@/lib/api/tasks";
 import { EMPTY_FILTERS, useTaskStore } from "@/lib/store/useTaskStore";
 import { useToastStore } from "@/lib/store/useToastStore";
-import { applyFilters } from "@/lib/utils/applyFilters";
+import { applyFilters, getActiveFilterCount } from "@/lib/utils/applyFilters";
 import { formatDueDate } from "@/lib/utils/formatDueDate";
 import { writePersistedFilters } from "@/lib/utils/persistedFilters";
 import { sortTasks } from "@/lib/utils/sortTasks";
@@ -22,7 +22,9 @@ import { WarningTriangleIcon } from "./icons";
 import { NoMatchesEmptyState } from "./NoMatchesEmptyState";
 import { NoTasksEmptyState } from "./NoTasksEmptyState";
 import { PriorityBadge } from "./PriorityBadge";
-import { StatusBadge, STATUS_STYLES } from "./StatusBadge";
+import { QuickStatusSelect } from "./QuickStatusSelect";
+import { StatusBadge } from "./StatusBadge";
+import { TaskCardList } from "./TaskCardList";
 
 // Explicit widths (table-layout: fixed) so `truncate` on the title/customer
 // cells actually has a bound to clip against instead of the table growing
@@ -35,42 +37,6 @@ const COLUMNS = [
   { label: "Due Date", width: "w-[14%]" },
   { label: "Assignee", width: "w-[14%]" },
 ] as const;
-
-interface QuickStatusSelectProps {
-  task: Task;
-  onStatusChange: (taskId: string, status: Status) => void;
-}
-
-/**
- * Task 8.2: inline status control, no detail view needed. Styled with the
- * same per-status colors as StatusBadge (STATUS_STYLES, exported from
- * there) for visual consistency. Only rendered for tasks with a
- * recognized status — Task 3.8's defensive StatusBadge fallback covers
- * the malformed-data case instead, since "pick a new status" doesn't
- * mean much when the current one is already corrupted.
- */
-function QuickStatusSelect({ task, onStatusChange }: QuickStatusSelectProps) {
-  const { className } = STATUS_STYLES[task.status];
-
-  return (
-    <select
-      value={task.status}
-      onChange={(event) =>
-        onStatusChange(task.id, event.target.value as Status)
-      }
-      onClick={(event) => event.stopPropagation()}
-      onKeyDown={(event) => event.stopPropagation()}
-      aria-label={`Change status for ${task.title}`}
-      className={`focus-visible:ring-ring cursor-pointer rounded-full border px-2 py-0.5 text-xs font-medium outline-none focus-visible:ring-2 ${className}`}
-    >
-      {STATUSES.map((status) => (
-        <option key={status} value={status}>
-          {status}
-        </option>
-      ))}
-    </select>
-  );
-}
 
 interface TaskRowProps {
   task: Task;
@@ -253,8 +219,7 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
       });
   }
 
-  const activeFilterCount =
-    filters.priority.length + filters.status.length + filters.assignee.length;
+  const activeFilterCount = getActiveFilterCount(filters);
   const hasActiveSearchOrFilters = searchQuery !== "" || activeFilterCount > 0;
 
   // Builds one combined URLSearchParams and issues a single router.replace,
@@ -302,40 +267,61 @@ export function TaskTable({ onCreateTask }: TaskTableProps) {
   }
 
   return (
-    <div className="border-border bg-surface max-h-[70vh] overflow-auto rounded-lg border">
-      <table className="w-full min-w-[720px] table-fixed border-collapse text-left text-sm">
-        <caption className="sr-only">
-          Customer success tasks: title, customer, priority, status, due date,
-          and assignee. Rows open the task&apos;s details.
-        </caption>
-        <thead className="border-border bg-muted sticky top-0 z-10 border-b">
-          <tr>
-            {COLUMNS.map((column) => (
-              <th
-                key={column.label}
-                scope="col"
-                className={`text-muted-foreground px-4 py-3 text-xs font-semibold tracking-wide uppercase ${column.width}`}
-              >
-                {column.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {sortedTasks.map((task) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              onOpen={handleOpen}
-              now={now}
-              searchQuery={searchQuery}
-              isRecentlyCreated={task.id === recentlyCreatedTaskId}
-              onHighlightExpire={handleHighlightExpire}
-              onStatusChange={handleStatusChange}
-            />
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      {/* Task 9.1: the table doesn't work under ~768px (min-w-[720px]
+          forces horizontal scroll on a phone) -- TaskCardList replaces it
+          below `md`, fed the exact same sortedTasks/handlers computed
+          above so there's one source of truth, not two independently
+          filtered/sorted lists that could drift. */}
+      <div className="hidden md:block">
+        <div className="border-border bg-surface max-h-[70vh] overflow-auto rounded-lg border">
+          <table className="w-full min-w-[720px] table-fixed border-collapse text-left text-sm">
+            <caption className="sr-only">
+              Customer success tasks: title, customer, priority, status, due
+              date, and assignee. Rows open the task&apos;s details.
+            </caption>
+            <thead className="border-border bg-muted sticky top-0 z-10 border-b">
+              <tr>
+                {COLUMNS.map((column) => (
+                  <th
+                    key={column.label}
+                    scope="col"
+                    className={`text-muted-foreground px-4 py-3 text-xs font-semibold tracking-wide uppercase ${column.width}`}
+                  >
+                    {column.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sortedTasks.map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  onOpen={handleOpen}
+                  now={now}
+                  searchQuery={searchQuery}
+                  isRecentlyCreated={task.id === recentlyCreatedTaskId}
+                  onHighlightExpire={handleHighlightExpire}
+                  onStatusChange={handleStatusChange}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="md:hidden">
+        <TaskCardList
+          tasks={sortedTasks}
+          now={now}
+          searchQuery={searchQuery}
+          recentlyCreatedTaskId={recentlyCreatedTaskId}
+          onOpen={handleOpen}
+          onHighlightExpire={handleHighlightExpire}
+          onStatusChange={handleStatusChange}
+        />
+      </div>
+    </>
   );
 }

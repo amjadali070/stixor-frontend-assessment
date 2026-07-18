@@ -4,6 +4,17 @@ import type { Task } from "@/types/task";
 export const UNASSIGNED_FILTER_KEY = "unassigned";
 
 /**
+ * Shared by `TaskTable` (empty-state messaging) and the mobile "Filters"
+ * trigger badge (Task 9.4) — one definition of "how many filters are
+ * active" so the two can't silently drift out of agreement.
+ */
+export function getActiveFilterCount(filters: TaskFilters): number {
+  return (
+    filters.priority.length + filters.status.length + filters.assignee.length
+  );
+}
+
+/**
  * Search AND every active filter facet, OR within a facet's selected values.
  * A facet with zero selected values doesn't filter anything (matches all).
  * Pure — returns a new array, never mutates `tasks`.

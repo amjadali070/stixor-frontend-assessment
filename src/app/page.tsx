@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 
 import { ActiveFilterChips } from "@/components/filters/ActiveFilterChips";
 import { FilterBar } from "@/components/filters/FilterBar";
+import { MobileFilterSheet } from "@/components/filters/MobileFilterSheet";
 import { SearchBar } from "@/components/filters/SearchBar";
 import { TaskDetailPanel } from "@/components/task-detail/TaskDetailPanel";
 import { CreateTaskModal } from "@/components/task-form/CreateTaskModal";
@@ -72,7 +73,7 @@ export default function DashboardPage() {
   const hasStaleData = error !== null && tasks.length > 0;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
       <header className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Tasks</h1>
@@ -102,13 +103,21 @@ export default function DashboardPage() {
         </Suspense>
       </div>
 
+      {/* Task 9.4: FilterBar's multi-group layout doesn't fit inline on a
+          phone -- MobileFilterSheet (a "Filters" trigger + bottom sheet
+          wrapping this same FilterBar) replaces it below `md`. */}
       <div className="mb-4">
         <Suspense
           fallback={
             <div className="bg-muted h-[52px] w-full animate-pulse rounded-md" />
           }
         >
-          <FilterBar />
+          <div className="hidden md:block">
+            <FilterBar />
+          </div>
+          <div className="md:hidden">
+            <MobileFilterSheet />
+          </div>
         </Suspense>
       </div>
 

@@ -167,6 +167,49 @@ export function TrashIcon({ className }: IconProps) {
   );
 }
 
+export function FilterIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width="16"
+      height="16"
+      aria-hidden="true"
+      className={className ?? "shrink-0"}
+    >
+      <line
+        x1="2"
+        y1="4"
+        x2="14"
+        y2="4"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <circle cx="6" cy="4" r="1.6" fill="currentColor" />
+      <line
+        x1="2"
+        y1="8"
+        x2="14"
+        y2="8"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <circle cx="10" cy="8" r="1.6" fill="currentColor" />
+      <line
+        x1="2"
+        y1="12"
+        x2="14"
+        y2="12"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <circle cx="5" cy="12" r="1.6" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function SpinnerIcon({ className }: IconProps) {
   return (
     <svg

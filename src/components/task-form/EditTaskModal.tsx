@@ -191,7 +191,7 @@ export function EditTaskModal({ task, onClose }: EditTaskModalProps) {
   const onSubmit = handleSubmit(attemptUpdate);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center md:p-4">
       <div
         className="absolute inset-0 bg-black/40"
         aria-hidden="true"
@@ -204,7 +204,7 @@ export function EditTaskModal({ task, onClose }: EditTaskModalProps) {
         aria-modal="true"
         aria-labelledby="edit-task-heading"
         onKeyDown={trapTab}
-        className="bg-surface relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-y-auto rounded-lg shadow-xl"
+        className="bg-surface relative flex h-full w-full flex-col overflow-y-auto md:h-auto md:max-h-[90vh] md:max-w-lg md:rounded-lg md:shadow-xl"
       >
         <div className="border-border flex items-center justify-between gap-4 border-b px-6 py-4">
           <h2 id="edit-task-heading" className="text-lg font-semibold">
