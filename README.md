@@ -1,5 +1,7 @@
 # Stixor CS Task Dashboard
 
+**Live Demo:** [https://stixor-frontend-assessment.vercel.app/](https://stixor-frontend-assessment.vercel.app/)
+
 A task management dashboard for a Customer Success team, built as a take-home assessment. CSMs can track, search, filter, create, and update customer tasks. Nothing exotic on paper, but I tried to treat it like a real internal tool rather than a demo, so a fair amount of the work went into the stuff that doesn't show up in a feature list: loading/error/empty states, keyboard access, what happens when a request fails halfway through, that kind of thing.
 
 Here's what's in this doc:
