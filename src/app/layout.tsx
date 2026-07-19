@@ -50,7 +50,10 @@ export default function RootLayout({
       className={`${firaSans.variable} ${firaCode.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="bg-background text-foreground flex min-h-full flex-col">
+      <body
+        className="bg-background text-foreground flex min-h-full flex-col"
+        suppressHydrationWarning
+      >
         <Script id="theme-init" strategy="beforeInteractive">
           {THEME_INIT_SCRIPT}
         </Script>
